@@ -235,6 +235,17 @@ hr.sep{border:none;border-top:1px solid #21262d;margin:16px 0;}
 .mic-prefix,.mic-suffix{font-size:14px;color:#8b949e;font-weight:600;flex-shrink:0;}
 .mic-input-wrap input{flex:1;background:transparent;border:none;outline:none;font-size:16px;color:#e6edf3;font-family:'JetBrains Mono',monospace;font-weight:600;min-width:0;}
 .mic-hint{font-size:11px;color:#6b7280;line-height:1.5;}
+.lev-btn-group{display:flex;gap:6px;margin-bottom:6px;}
+.lev-btn{flex:1;background:#161b22;border:1px solid #30363d;border-radius:6px;color:#8b949e;font-size:16px;font-weight:700;font-family:'JetBrains Mono',monospace;padding:8px 0;cursor:pointer;transition:all .15s;}
+.lev-btn:hover{border-color:#58a6ff;color:#e6edf3;}
+.lev-active{border-color:#3fb950!important;color:#3fb950!important;background:rgba(63,185,80,.08)!important;}
+.acct-liq-box{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 16px;margin-bottom:14px;}
+.acct-liq-ttl{font-size:10px;color:#8b949e;text-transform:uppercase;letter-spacing:.06em;font-weight:600;margin-bottom:10px;}
+.acct-liq-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px;}
+.alc{background:#0d1117;border:1px solid #21262d;border-radius:6px;padding:10px 12px;text-align:center;}
+.alc-lbl{font-size:10px;color:#8b949e;text-transform:uppercase;letter-spacing:.04em;margin-bottom:5px;}
+.alc-val{font-size:17px;font-weight:700;font-family:'JetBrains Mono',monospace;}
+.alc-sub{font-size:10px;color:#6b7280;margin-top:3px;line-height:1.4;}
 
 .milli-section-hdr{font-size:12px;font-weight:700;color:#58a6ff;text-transform:uppercase;letter-spacing:.07em;padding:18px 0 10px;border-bottom:1px solid #21262d;margin-bottom:14px;}
 
@@ -672,7 +683,7 @@ hr.sep{border:none;border-top:1px solid #21262d;margin:16px 0;}
       <div class="milli-input-card">
         <label class="mic-label" for="milliCapital">Total capital to deploy</label>
         <div class="mic-input-wrap"><span class="mic-prefix">$</span><input type="number" id="milliCapital" value="10000" min="100" step="500" oninput="updateMilli()"></div>
-        <div class="mic-hint">Split across 4 tiered entries below</div>
+        <div class="mic-hint" id="milliCapHint">Split across 4 tiered entries below</div>
       </div>
       <div class="milli-input-card">
         <label class="mic-label" for="milliBottom">Expected bottom price</label>
@@ -685,9 +696,19 @@ hr.sep{border:none;border-top:1px solid #21262d;margin:16px 0;}
         <div class="mic-hint">Analyst range: $190K–$315K (2028–2029)</div>
       </div>
       <div class="milli-input-card">
-        <label class="mic-label" for="milliLev">Futures leverage</label>
-        <div class="mic-input-wrap"><input type="number" id="milliLev" value="5" min="1" max="10" step="1" oninput="updateMilli()"><span class="mic-suffix">×</span></div>
-        <div class="mic-hint">BIT contracts: 0.01 BTC · 10–20% margin req.</div>
+        <label class="mic-label">Futures leverage</label>
+        <div class="lev-btn-group">
+          <button class="lev-btn" onclick="setMilliLev(2,this)">2×</button>
+          <button class="lev-btn" onclick="setMilliLev(4,this)">4×</button>
+          <button class="lev-btn lev-active" onclick="setMilliLev(10,this)">10×</button>
+        </div>
+        <input type="hidden" id="milliLev" value="10">
+        <div class="mic-hint">CFM BIT: 4× conservative · 10× aggressive</div>
+      </div>
+      <div class="milli-input-card">
+        <label class="mic-label" for="milliReserve">Cash reserve (margin buffer)</label>
+        <div class="mic-input-wrap"><span class="mic-prefix">$</span><input type="number" id="milliReserve" value="0" min="0" step="500" oninput="updateMilli()"></div>
+        <div class="mic-hint">Kept liquid · not invested · absorbs losses before liquidation</div>
       </div>
     </div>
 
@@ -711,15 +732,20 @@ hr.sep{border:none;border-top:1px solid #21262d;margin:16px 0;}
         <div class="mpc-val" id="milliMarginUsed">—</div>
         <div class="mpc-sub">at <span id="milliLevLbl">5</span>× leverage</div>
       </div>
+      <div class="milli-proj-card">
+        <div class="mpc-lbl">Cash reserve</div>
+        <div class="mpc-val" id="milliReserveLbl">$0</div>
+        <div class="mpc-sub">Liquid buffer · not deployed</div>
+      </div>
       <div class="milli-proj-card mpc-blue">
         <div class="mpc-lbl">Total contracts</div>
         <div class="mpc-val" id="milliContracts">—</div>
         <div class="mpc-sub">BIT @ 0.01 BTC each</div>
       </div>
       <div class="milli-proj-card mpc-green">
-        <div class="mpc-lbl">Portfolio at target</div>
+        <div class="mpc-lbl">Account at target</div>
         <div class="mpc-val g" id="milliAtTarget">—</div>
-        <div class="mpc-sub">incl. original margin</div>
+        <div class="mpc-sub">incl. reserve + margin</div>
       </div>
       <div class="milli-proj-card mpc-green">
         <div class="mpc-lbl">Total profit</div>
@@ -748,12 +774,13 @@ hr.sep{border:none;border-top:1px solid #21262d;margin:16px 0;}
         <thead><tr>
           <th>Tier</th><th>Entry</th><th>Initial margin</th>
           <th>Maint. floor</th><th>Liq. price</th>
-          <th>Adverse move to liq.</th><th>$3K gap</th><th>$5K gap</th>
+          <th>Liq. distance (eff.)</th><th>$3K gap</th><th>$5K gap</th>
           <th>Safe max lev.</th>
         </tr></thead>
         <tbody id="milliMarginRows"><!-- JS --></tbody>
       </table>
     </div>
+    <div class="acct-liq-box" id="milliAcctLiq"><!-- JS --></div>
     <div class="margin-rec-grid" id="milliMarginRec"><!-- JS --></div>
     <div style="font-size:11px;color:#6b7280;margin-bottom:20px;line-height:1.65;padding:10px 14px;background:#161b22;border-radius:7px;border:1px solid #21262d;">
       &#128338; <strong style="color:#8b949e;">How Coinbase CFM margin works:</strong> Mark-to-market daily at ~4 PM ET — cash moves in/out of your balance every night. Maintenance margin = 50% of initial. Liquidation fires automatically on a wick to the mark price (BTC index), not last traded. <strong style="color:#d29922;">Critical: Fri 5 PM ET → Sun 6 PM ET the market halts ~45 hours</strong> — BTC keeps moving globally and you cannot exit. A gap opening Monday against you past maintenance = instant liquidation. Historical weekend gaps: often $2K–$5K+.
@@ -8614,12 +8641,21 @@ applyPrice = function(price, change) {
 // ══════════════════════════════════════════════════════════════════════
 // ROAD TO A MILLI
 // ══════════════════════════════════════════════════════════════════════
+function setMilliLev(v,btn){
+  document.getElementById('milliLev').value=v;
+  document.querySelectorAll('.lev-btn').forEach(b=>b.classList.remove('lev-active'));
+  btn.classList.add('lev-active');
+  updateMilli();
+}
+
 function updateMilli(){
-  const capital  = parseFloat(document.getElementById('milliCapital').value)||10000;
-  const bottom   = parseFloat(document.getElementById('milliBottom').value)||47000;
-  const top      = parseFloat(document.getElementById('milliTop').value)||280000;
-  const lev      = Math.max(1,Math.min(10,parseFloat(document.getElementById('milliLev').value)||5));
-  const price    = typeof livePrice!=='undefined'?livePrice:61770;
+  const capital    = parseFloat(document.getElementById('milliCapital').value)||10000;
+  const reserve    = Math.max(0,parseFloat(document.getElementById('milliReserve')?.value)||0);
+  const deployable = Math.max(0,capital-reserve);
+  const bottom     = parseFloat(document.getElementById('milliBottom').value)||47000;
+  const top        = parseFloat(document.getElementById('milliTop').value)||280000;
+  const lev        = Math.max(1,parseFloat(document.getElementById('milliLev').value)||10);
+  const price      = typeof livePrice!=='undefined'?livePrice:61770;
 
   // ── TIERS ─────────────────────────────────────────────────────────
   const TIERS=[
@@ -8633,7 +8669,7 @@ function updateMilli(){
   let tierHTML='';
 
   TIERS.forEach(t=>{
-    const alloc      = capital*t.pct/100;
+    const alloc      = deployable*t.pct/100;
     const notional   = alloc*lev;
     const contracts  = Math.max(0,Math.floor(notional/(t.price*0.01)));
     const btcExp     = contracts*0.01;
@@ -8652,7 +8688,7 @@ function updateMilli(){
     tierHTML+=`
     <div class="milli-tier-card mtc-${status}">
       <div class="mtc-header">
-        <div><div class="mtc-num">Tier ${t.n} &middot; ${t.pct}% of capital</div><div class="mtc-label">${t.label}</div></div>
+        <div><div class="mtc-num">Tier ${t.n} &middot; ${t.pct}% of deployed ($${Math.round(deployable).toLocaleString()})</div><div class="mtc-label">${t.label}</div></div>
         <div class="mtc-badge mtb-${status}">${statusLbl}</div>
       </div>
       <div class="mtc-price">$${t.price.toLocaleString()}</div>
@@ -8671,9 +8707,21 @@ function updateMilli(){
   document.getElementById('milliTierGrid').innerHTML=tierHTML;
 
   // ── SUMMARY ────────────────────────────────────────────────────────
-  const avgEntry  = totalBTC>0?weightedEntry/totalBTC:0;
-  const portfolio = totalMargin+totalPnL;
-  const roi       = totalMargin>0?totalPnL/totalMargin:0;
+  const avgEntry      = totalBTC>0?weightedEntry/totalBTC:0;
+  const totalNotional = weightedEntry;             // sum(contracts × 0.01 × entry)
+  const totalInitMgn  = totalMargin;               // = totalNotional / lev (approx)
+  const tradingProfit = totalPnL;
+  const portfolio     = reserve+totalMargin+totalPnL; // full account at target
+  const roi           = totalMargin>0?totalPnL/totalMargin:0;
+  const roiTotal      = capital>0?totalPnL/capital:0;
+
+  // Account-level liquidation (all tiers open at same time)
+  // Liq when: reserve + totalInitMgn + totalUnrealizedPnL = 0.5 × totalInitMgn
+  // → P_liq = (totalNotional − 0.5×totalInitMgn − reserve) / totalBTC
+  const acctLiqNoRes  = totalBTC>0?(totalNotional-0.5*totalInitMgn)/totalBTC:0;
+  const acctLiqWRes   = totalBTC>0?(totalNotional-0.5*totalInitMgn-reserve)/totalBTC:0;
+  const moveNoRes     = Math.max(0,avgEntry-acctLiqNoRes);
+  const moveWRes      = acctLiqWRes>0?Math.max(0,avgEntry-acctLiqWRes):null;
 
   // ── MARGIN RISK ────────────────────────────────────────────────────
   // Liq distance = entry / (lev × 2)  [from maintenance = 50% of initial]
@@ -8682,30 +8730,33 @@ function updateMilli(){
   let marginHTML='';
   const GAP3=3000,GAP5=5000;
   TIERS.forEach(t=>{
-    const ep       = t.price;
-    const alloc    = capital*t.pct/100;
-    const contracts= Math.max(0,Math.floor(alloc*lev/(ep*0.01)));
-    const notional = contracts*0.01*ep;
-    const initMgn  = notional/lev;
-    const maintMgn = initMgn*0.5;
-    const liqDist  = ep/(lev*2);           // $ drop before liquidation
-    const liqPrice = ep-liqDist;
-    const safeMaxLev= Math.floor(ep/(2*GAP3)); // survives $3K gap
-    // $3K gap: SAFE if liqDist>3000, DANGER if ≤3000
-    // $5K gap: SAFE if liqDist>5000, RISKY if 3000<liqDist≤5000, DANGER if ≤3000
-    const g3ok = liqDist>GAP3?'gp-green':'gp-red';
-    const g5ok = liqDist>GAP5?'gp-green':(liqDist>GAP3?'gp-yellow':'gp-red');
-    const g3lbl= liqDist>GAP3?'SAFE':'DANGER';
-    const g5lbl= liqDist>GAP5?'SAFE':(liqDist>GAP3?'RISKY':'DANGER');
+    const ep         = t.price;
+    const alloc      = deployable*t.pct/100;
+    const contracts  = Math.max(0,Math.floor(alloc*lev/(ep*0.01)));
+    const notional   = contracts*0.01*ep;
+    const initMgn    = notional/lev;
+    const maintMgn   = initMgn*0.5;
+    const liqDist    = ep/(lev*2);           // solo liq distance (no reserve)
+    // Effective liq distance: reserve split proportionally to initMgn weight
+    const resShare   = totalInitMgn>0?reserve*(initMgn/totalInitMgn):0;
+    const effLiqDist = liqDist+(contracts*0.01>0?resShare/(contracts*0.01):0);
+    const effLiqPx   = ep-effLiqDist;
+    const safeMaxLev = Math.floor(ep/(2*GAP3));
+    const g3ok = effLiqDist>GAP3?'gp-green':'gp-red';
+    const g5ok = effLiqDist>GAP5?'gp-green':(effLiqDist>GAP3?'gp-yellow':'gp-red');
+    const g3lbl= effLiqDist>GAP3?'SAFE':'DANGER';
+    const g5lbl= effLiqDist>GAP5?'SAFE':(effLiqDist>GAP3?'RISKY':'DANGER');
     if(g3ok==='gp-red') worstGapStatus='red';
     else if(g5ok!=='gp-green'&&worstGapStatus==='green') worstGapStatus='yellow';
+    const distColor=effLiqDist>GAP5?'#3fb950':effLiqDist>GAP3?'#d29922':'#f85149';
+    const resNote=reserve>0?` <span style="font-size:9px;color:#6b7280;">(+$${Math.round(resShare/(contracts*0.01||1)).toLocaleString()} from reserve)</span>`:'';
     marginHTML+=`<tr>
       <td class="mt-tier">T${t.n} ${t.price<bottom&&t.n===4?'(flush)':''}</td>
       <td>$${ep.toLocaleString()}</td>
       <td>$${Math.round(initMgn).toLocaleString()}</td>
       <td>$${Math.round(maintMgn).toLocaleString()}</td>
-      <td style="color:#f85149;">$${Math.round(liqPrice).toLocaleString()}</td>
-      <td style="color:${liqDist>GAP5?'#3fb950':liqDist>GAP3?'#d29922':'#f85149'}">$${Math.round(liqDist).toLocaleString()}</td>
+      <td style="color:#f85149;">$${Math.round(effLiqPx).toLocaleString()}</td>
+      <td style="color:${distColor}">$${Math.round(effLiqDist).toLocaleString()}${resNote}</td>
       <td><span class="gap-pill ${g3ok}">${g3lbl}</span></td>
       <td><span class="gap-pill ${g5ok}">${g5lbl}</span></td>
       <td style="color:#58a6ff;">${safeMaxLev}&times;</td>
@@ -8718,10 +8769,11 @@ function updateMilli(){
   const safeG5     = Math.min(...TIERS.map(t=>Math.floor(t.price/(2*GAP5))));
   const bannerClass=worstGapStatus==='red'?'mrb-red':worstGapStatus==='yellow'?'mrb-yellow':'mrb-green';
   const bannerIcon=worstGapStatus==='red'?'&#128680;':worstGapStatus==='yellow'?'&#9888;&#65039;':'&#9989;';
+  const resNote2=reserve>0?` Your $${reserve.toLocaleString()} cash reserve extends each tier's liq distance — see table.`:'';
   const bannerMsg={
-    red:`<strong>High liquidation risk at ${lev}×.</strong> One or more tiers are within $3K of forced liquidation — inside the range of a typical weekend gap ($2K–$5K+). Coinbase halts Fri 5 PM ET → Sun 6 PM ET and you <em>cannot exit</em>. A gap opening against you fires liquidation the moment the market reopens. <strong>Reduce leverage to ≤${safeGlobal}× or close before Friday 4 PM ET.</strong>`,
-    yellow:`<strong>Moderate risk at ${lev}×.</strong> Positions survive a typical $3K gap but a $5K+ weekend opening (which has happened) reaches your maintenance floor. Recommended: reduce to ≤${safeG5}× before weekends for full $5K gap protection.`,
-    green:`<strong>Margin healthy at ${lev}×.</strong> All positions survive a $5K+ adverse move before hitting maintenance. Still reduce size or leverage before weekends as a precaution — large gaps do happen.`
+    red:`<strong>High liquidation risk at ${lev}×.</strong> One or more tiers are within $3K of forced liquidation — inside the typical weekend gap range ($2K–$5K+). Coinbase halts Fri 5 PM ET → Sun 6 PM ET and you <em>cannot exit</em>. A gap opening against you fires liquidation instantly. <strong>${reserve>0?`Your reserve helps — increase it or reduce leverage to ≤${safeGlobal}×.`:`Increase your cash reserve above, or reduce leverage to ≤${safeGlobal}×.`}</strong>`,
+    yellow:`<strong>Moderate risk at ${lev}×.</strong> Positions survive a typical $3K gap but a $5K+ weekend opening reaches your maintenance floor.${resNote2} Recommended: increase reserve or reduce to ≤${safeG5}× before weekends.`,
+    green:`<strong>Margin healthy at ${lev}×.</strong> All tiers survive a $5K+ adverse move before hitting maintenance.${resNote2} Still reduce size or leverage before weekends as a precaution.`
   };
   document.getElementById('milliBanner').innerHTML=
     `<div class="margin-risk-banner ${bannerClass}"><span class="mrb-icon">${bannerIcon}</span><span>${bannerMsg[worstGapStatus]}</span></div>`;
@@ -8738,14 +8790,48 @@ function updateMilli(){
   document.getElementById('milliMarginUsed').textContent = '$'+Math.round(totalMargin).toLocaleString();
   document.getElementById('milliLevLbl').textContent     = lev;
   document.getElementById('milliContracts').textContent  = totalContracts.toLocaleString();
+  document.getElementById('milliReserveLbl').textContent = '$'+Math.round(reserve).toLocaleString();
   document.getElementById('milliAtTarget').textContent   = '$'+Math.round(portfolio).toLocaleString();
-  document.getElementById('milliProfit').textContent     = '+$'+Math.round(totalPnL).toLocaleString();
-  document.getElementById('milliROILine').textContent    = roi.toFixed(1)+'× return on capital';
+  document.getElementById('milliProfit').textContent     = '+$'+Math.round(tradingProfit).toLocaleString();
+  document.getElementById('milliROILine').textContent    = roiTotal.toFixed(1)+'× on total · '+roi.toFixed(1)+'× on deployed';
+  document.getElementById('milliCapHint').textContent    = reserve>0
+    ?`Deploying $${Math.round(deployable).toLocaleString()} · $${Math.round(reserve).toLocaleString()} reserved as buffer`
+    :'Split across 4 tiered entries below';
 
   // Hero
   document.getElementById('milliHeroNum').textContent  = '$'+Math.round(portfolio).toLocaleString();
-  document.getElementById('milliHeroRoi').textContent  = '+'+roi.toFixed(1)+'× · $'+Math.round(totalPnL).toLocaleString()+' profit';
-  document.getElementById('milliHeroSub').textContent  = totalBTC.toFixed(2)+' BTC exposure · '+totalContracts+' BIT contracts · $'+Math.round(totalMargin).toLocaleString()+' margin';
+  document.getElementById('milliHeroRoi').textContent  = '+'+roiTotal.toFixed(1)+'× total · $'+Math.round(tradingProfit).toLocaleString()+' profit';
+  document.getElementById('milliHeroSub').textContent  = totalBTC.toFixed(2)+' BTC exposure · '+totalContracts+' BIT contracts'+(reserve>0?' · $'+Math.round(reserve).toLocaleString()+' reserve':'');
+
+  // Account-level liquidation analysis box
+  const liqNR  = acctLiqNoRes>0?'$'+Math.round(acctLiqNoRes).toLocaleString():'< $0 (safe)';
+  const liqWR  = acctLiqWRes>0?'$'+Math.round(acctLiqWRes).toLocaleString():'Cannot be liquidated';
+  const liqWRColor = acctLiqWRes<=0?'#3fb950':(acctLiqWRes<acctLiqNoRes*0.9?'#d29922':'#f85149');
+  const extraBuf = reserve>0&&acctLiqWRes>0?'$'+Math.round(moveWRes-moveNoRes).toLocaleString()+' extra buffer':reserve>0?'Full protection added':'Set reserve above to see impact';
+  document.getElementById('milliAcctLiq').innerHTML=`
+    <div class="acct-liq-ttl">&#128202; Account-level liquidation — all 4 tiers open simultaneously</div>
+    <div class="acct-liq-grid">
+      <div class="alc">
+        <div class="alc-lbl">Avg. entry price</div>
+        <div class="alc-val" style="color:#e6edf3;">$${Math.round(avgEntry).toLocaleString()}</div>
+        <div class="alc-sub">Weighted across all tiers</div>
+      </div>
+      <div class="alc">
+        <div class="alc-lbl">Liq. price — no reserve</div>
+        <div class="alc-val" style="color:#f85149;">${liqNR}</div>
+        <div class="alc-sub">$${Math.round(moveNoRes).toLocaleString()} drop from avg entry</div>
+      </div>
+      <div class="alc">
+        <div class="alc-lbl">Liq. price — w/ $${Math.round(reserve).toLocaleString()} reserve</div>
+        <div class="alc-val" style="color:${liqWRColor};">${liqWR}</div>
+        <div class="alc-sub">${acctLiqWRes>0?'$'+Math.round(moveWRes).toLocaleString()+' drop from avg entry':'Reserve absorbs all losses'}</div>
+      </div>
+      <div class="alc">
+        <div class="alc-lbl">Reserve impact</div>
+        <div class="alc-val" style="color:#3fb950;font-size:14px;">${extraBuf}</div>
+        <div class="alc-sub">Added liquidation protection</div>
+      </div>
+    </div>`;
 
   // ── SCENARIOS TABLE ────────────────────────────────────────────────
   const SCENARIOS=[
