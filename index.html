@@ -25,7 +25,7 @@ html,body{width:100%;background:#0d1117;color:#e6edf3;font-family:'Courier New',
 .sv{font-size:13px;font-weight:600;}
 
 /* ── TOOLBAR ── */
-.tb{background:#0d1117;border-bottom:1px solid #21262d;position:sticky;top:0;z-index:30;padding:0;}
+.tb{background:#0d1117;border-bottom:1px solid #21262d;position:sticky;top:48px;z-index:30;padding:0;}
 .tb-row{display:flex;align-items:center;gap:4px;padding:5px 18px;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;}
 .tb-row::-webkit-scrollbar{display:none;}
 .tb-row+.tb-row{border-top:1px solid rgba(255,255,255,.05);}
@@ -61,22 +61,6 @@ html,body{width:100%;background:#0d1117;color:#e6edf3;font-family:'Courier New',
 /* ── ANALYSIS SECTION ── */
 .analysis{padding:0 0 40px;}
 
-/* ── ANALYSIS NAV ── */
-.an-nav{position:sticky;top:66px;z-index:20;background:#0d1117;border-bottom:1px solid #21262d;padding:0 18px;display:flex;gap:0;overflow-x:auto;scrollbar-width:none;}
-.an-nav::-webkit-scrollbar{display:none;}
-.an-nav-btn{font-size:11px;padding:9px 14px;background:transparent;border:none;border-bottom:2px solid transparent;color:#8b949e;cursor:pointer;font-family:inherit;white-space:nowrap;transition:all .15s;}
-.an-nav-btn:hover{color:#e6edf3;}
-.an-nav-btn.active{color:#58a6ff;border-bottom-color:#58a6ff;}
-
-/* ── COLLAPSIBLE SECTIONS ── */
-.an-section{border-bottom:1px solid #21262d;}
-.an-section-hdr{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;cursor:pointer;user-select:none;}
-.an-section-hdr:hover{background:rgba(255,255,255,.02);}
-.an-section-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;}
-.an-section-chevron{font-size:12px;color:#8b949e;transition:transform .2s;}
-.an-section-chevron.open{transform:rotate(180deg);}
-.an-section-body{padding:0 18px 18px;display:block;}
-.an-section-body.collapsed{display:none;}
 .an-sub{font-size:10px;color:#8b949e;margin-bottom:16px;}
 
 /* ── TABLES ── */
@@ -7526,32 +7510,14 @@ function switchTab(tabId) {
   if (tabId === 'chart' && typeof myChart !== 'undefined') {
     setTimeout(() => { myChart.resize(); if(typeof volChart!=='undefined') volChart.resize(); }, 50);
   }
+  if (tabId === 'prediction') {
+    setTimeout(() => {
+      const pc=Chart.getChart('predCanvas'); if(pc) pc.resize();
+      const ac=Chart.getChart('analogCanvas'); if(ac) ac.resize();
+    }, 50);
+  }
 }
 
-// ── FIX #7: COLLAPSIBLE SECTIONS ─────────────────────────────────────
-function toggleSection(hdr){
-  const body=hdr.nextElementSibling;
-  const chev=hdr.querySelector('.an-section-chevron');
-  const collapsed=body.classList.contains('collapsed');
-  body.classList.toggle('collapsed',!collapsed);
-  chev.classList.toggle('open',collapsed);
-}
-function scrollToSection(id,btn){
-  document.querySelectorAll('.an-nav-btn').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active');
-  const el=document.getElementById(id);
-  if(!el)return;
-  // Expand the section if collapsed
-  const body=el.querySelector('.an-section-body');
-  const hdr=el.querySelector('.an-section-hdr');
-  if(body&&body.classList.contains('collapsed')){
-    body.classList.remove('collapsed');
-    const chev=hdr.querySelector('.an-section-chevron');
-    if(chev)chev.classList.add('open');
-  }
-  const offset=el.getBoundingClientRect().top+window.scrollY-120;
-  window.scrollTo({top:offset,behavior:'smooth'});
-}
 
 // ── FIX #8: YOU ARE HERE — BULL / BEAR PROGRESS BAR ─────────────────
 // Matches the chart zones exactly: green = bull, red = bear
@@ -7651,7 +7617,7 @@ function applyPrice(price,change){
   document.getElementById('drop').textContent='-'+((126186-price)/126186*100).toFixed(1)+'%';
   const days=Math.floor((Date.now()-new Date('2025-10-06'))/86400000);
   document.getElementById('ddays').textContent=days;
-  document.getElementById('predDays').textContent=days+' / ~383 days';
+  document.getElementById('predDays').textContent=days+' days since ATH';
   const h5days=Math.floor((new Date('2028-04-18')-Date.now())/86400000);
   document.getElementById('h5days').textContent=h5days+' days';
   if(aData===WK||aData===MO||aData===DA){const last=aData[aData.length-1];if(last){last[4]=price;myChart.data.datasets[0].data[myChart.data.datasets[0].data.length-1]=price;myChart.update('none');}}
@@ -7699,7 +7665,7 @@ applyPrice(68223,0.024);fetchLive();setInterval(fetchLive,30000);
       ctx.save();ctx.beginPath();ctx.ellipse(cx,cy,rx,ry,0,0,Math.PI*2);
       ctx.fillStyle='rgba(248,81,73,.14)';ctx.fill();ctx.strokeStyle='rgba(248,81,73,.75)';ctx.lineWidth=1.5;ctx.setLineDash([5,3]);ctx.stroke();ctx.setLineDash([]);
       ctx.fillStyle='#f85149';ctx.font='bold 10px Courier New';ctx.textAlign='center';ctx.fillText('C4 ATL ZONE',cx,cy-3);
-      ctx.font='9px Courier New';ctx.fillStyle='rgba(248,81,73,.85)';ctx.fillText('$32K\u2013$57K \u00b7 Oct\u2013Nov 2026',cx,cy+11);ctx.restore();
+      ctx.font='9px Courier New';ctx.fillStyle='rgba(248,81,73,.85)';ctx.fillText('$35K\u2013$57K \u00b7 Oct\u2013Nov 2026',cx,cy+11);ctx.restore();
     }
     // H5 line
     const hxi=li('2028-04'),hxp2=xp(hxi);
@@ -8207,7 +8173,7 @@ function updateScenario(){
 
   // Historical analog
   let analog='';
-  if(bearPct<=65) analog='Shallower than any prior bear (unprecedented)';
+  if(bearPct<=65) analog='Central estimate — maturity-adjusted cycle';
   else if(bearPct<=78) analog='Similar to C3 bear (-78%)';
   else if(bearPct<=84) analog='Similar to C2 bear (-84%)';
   else if(bearPct<=86) analog='Similar to C1 bear (-86%)';
