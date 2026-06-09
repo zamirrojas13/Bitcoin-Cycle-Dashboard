@@ -215,6 +215,98 @@ hr.sep{border:none;border-top:1px solid #21262d;margin:16px 0;}
 .main-tab.active{color:#58a6ff;border-bottom-color:#58a6ff;font-weight:700;}
 .tab-panel{display:none;}
 .tab-panel.active{display:block;}
+
+/* ── ROAD TO MILLI TAB ── */
+.milli-wrap{padding:20px;}
+.milli-header{background:linear-gradient(135deg,rgba(63,185,80,.06) 0%,rgba(88,166,255,.04) 100%);border:1px solid rgba(63,185,80,.2);border-radius:12px;padding:20px 24px;margin-bottom:18px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;}
+.milli-title{font-size:22px;font-weight:700;color:#f0f6fc;letter-spacing:-.4px;}
+.milli-subtitle{font-size:13px;color:#8b949e;margin-top:5px;line-height:1.65;max-width:540px;}
+.milli-hero-val{text-align:right;background:#0d1117;border:1px solid rgba(63,185,80,.35);border-radius:10px;padding:14px 20px;min-width:220px;}
+.milli-hero-lbl{font-size:10px;color:#d29922;text-transform:uppercase;letter-spacing:.07em;font-weight:600;margin-bottom:4px;}
+.milli-hero-num{font-size:30px;font-weight:700;color:#3fb950;font-family:'JetBrains Mono',monospace;letter-spacing:-.6px;}
+.milli-hero-roi{font-size:13px;color:#3fb950;font-weight:600;font-family:'JetBrains Mono',monospace;margin-top:2px;}
+.milli-hero-sub{font-size:11px;color:#6b7280;margin-top:3px;}
+
+.milli-setup-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px;margin-bottom:20px;}
+.milli-input-card{background:#161b22;border:1px solid #21262d;border-radius:8px;padding:14px 16px;}
+.mic-label{font-size:10px;color:#8b949e;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;font-weight:600;display:block;}
+.mic-input-wrap{display:flex;align-items:center;gap:6px;background:#0d1117;border:1px solid #30363d;border-radius:6px;padding:6px 10px;margin-bottom:6px;transition:border-color .15s;}
+.mic-input-wrap:focus-within{border-color:#58a6ff;}
+.mic-prefix,.mic-suffix{font-size:14px;color:#8b949e;font-weight:600;flex-shrink:0;}
+.mic-input-wrap input{flex:1;background:transparent;border:none;outline:none;font-size:16px;color:#e6edf3;font-family:'JetBrains Mono',monospace;font-weight:600;min-width:0;}
+.mic-hint{font-size:11px;color:#6b7280;line-height:1.5;}
+
+.milli-section-hdr{font-size:12px;font-weight:700;color:#58a6ff;text-transform:uppercase;letter-spacing:.07em;padding:18px 0 10px;border-bottom:1px solid #21262d;margin-bottom:14px;}
+
+.milli-tier-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-bottom:22px;}
+.milli-tier-card{background:#161b22;border:1px solid #21262d;border-radius:10px;padding:15px;position:relative;overflow:hidden;}
+.milli-tier-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;}
+.mtc-waiting::before{background:#8b949e;}
+.mtc-close::before{background:#d29922;}
+.mtc-fired::before{background:#3fb950;}
+.mtc-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;}
+.mtc-num{font-size:10px;color:#8b949e;text-transform:uppercase;letter-spacing:.07em;font-weight:600;}
+.mtc-label{font-size:12px;font-weight:600;color:#e6edf3;margin-top:2px;}
+.mtc-badge{font-size:10px;font-weight:700;padding:3px 9px;border-radius:4px;flex-shrink:0;}
+.mtb-waiting{background:rgba(139,148,158,.1);color:#8b949e;border:1px solid rgba(139,148,158,.3);}
+.mtb-close{background:rgba(210,153,34,.15);color:#d29922;border:1px solid rgba(210,153,34,.4);}
+.mtb-fired{background:rgba(63,185,80,.15);color:#3fb950;border:1px solid rgba(63,185,80,.4);}
+.mtc-price{font-size:22px;font-weight:700;font-family:'JetBrains Mono',monospace;letter-spacing:-.4px;color:#f0f6fc;margin:8px 0 10px;}
+.mtc-rows{display:flex;flex-direction:column;gap:0;margin-bottom:8px;}
+.mtc-row{display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.04);}
+.mtc-row:last-child{border-bottom:none;}
+.mtc-row .mtc-rk{color:#8b949e;}
+.mtc-row .mtc-rv{font-family:'JetBrains Mono',monospace;font-weight:600;color:#e6edf3;}
+.mtc-profit .mtc-rv{color:#3fb950;}
+.mtc-note{font-size:11px;color:#6b7280;border-top:1px solid rgba(255,255,255,.05);padding-top:8px;margin-top:4px;line-height:1.5;}
+
+.milli-proj-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:22px;}
+.milli-proj-card{background:#161b22;border:1px solid #21262d;border-radius:8px;padding:13px 14px;}
+.milli-proj-card.mpc-green{background:rgba(63,185,80,.07);border-color:rgba(63,185,80,.3);}
+.milli-proj-card.mpc-blue{background:rgba(88,166,255,.06);border-color:rgba(88,166,255,.25);}
+.mpc-lbl{font-size:10px;color:#8b949e;text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px;font-weight:600;}
+.mpc-val{font-size:18px;font-weight:700;font-family:'JetBrains Mono',monospace;letter-spacing:-.3px;color:#e6edf3;}
+.mpc-sub{font-size:11px;color:#6b7280;margin-top:3px;}
+
+.milli-sc-wrap{margin-bottom:22px;overflow-x:auto;border-radius:8px;border:1px solid #21262d;}
+.milli-sc-table{width:100%;border-collapse:collapse;font-size:13px;}
+.milli-sc-table th{text-align:left;padding:10px 14px;background:#161b22;color:#8b949e;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;}
+.milli-sc-table td{padding:10px 14px;border-bottom:1px solid rgba(255,255,255,.04);white-space:nowrap;}
+.milli-sc-table tr:last-child td{border-bottom:none;}
+.milli-sc-table tr:hover td{background:rgba(255,255,255,.02);}
+.milli-sc-table tr.sc-base td{background:rgba(88,166,255,.04);}
+.milli-sc-table .sc-name{font-weight:600;color:#e6edf3;}
+.milli-sc-table .sc-num{font-family:'JetBrains Mono',monospace;font-weight:600;}
+
+.milli-checklist-sub{font-size:13px;color:#8b949e;margin-bottom:14px;line-height:1.6;}
+.milli-checklist-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:8px;margin-bottom:22px;}
+.milli-chk{background:#161b22;border:1px solid #21262d;border-radius:8px;padding:13px 14px;display:flex;gap:12px;align-items:flex-start;}
+.milli-chk.chk-fired{border-left:3px solid #3fb950;}
+.milli-chk.chk-close{border-left:3px solid #d29922;}
+.milli-chk.chk-waiting{border-left:3px solid #8b949e;}
+.mchk-icon{font-size:20px;flex-shrink:0;line-height:1;}
+.mchk-body{flex:1;min-width:0;}
+.mchk-name{font-size:13px;font-weight:600;color:#e6edf3;margin-bottom:3px;}
+.mchk-desc{font-size:12px;color:#8b949e;line-height:1.55;}
+.mchk-foot{display:flex;justify-content:space-between;align-items:center;margin-top:6px;}
+.mchk-conf{font-size:11px;color:#d29922;font-weight:600;font-family:'JetBrains Mono',monospace;}
+.mchk-status{font-size:10px;font-weight:700;padding:2px 7px;border-radius:3px;}
+.mchk-status.s-fired{background:rgba(63,185,80,.15);color:#3fb950;border:1px solid rgba(63,185,80,.3);}
+.mchk-status.s-close{background:rgba(210,153,34,.15);color:#d29922;border:1px solid rgba(210,153,34,.3);}
+.mchk-status.s-waiting{background:rgba(139,148,158,.1);color:#8b949e;border:1px solid rgba(139,148,158,.2);}
+
+.milli-cfm-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px;margin-bottom:20px;}
+.milli-cfm-card{background:#161b22;border:1px solid #21262d;border-radius:8px;padding:15px 16px;}
+.cfm-title{font-size:11px;font-weight:700;color:#d29922;text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px;padding-bottom:7px;border-bottom:1px solid #21262d;}
+.cfm-row{display:flex;justify-content:space-between;align-items:center;font-size:12px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.03);}
+.cfm-row:last-child{border-bottom:none;}
+.cfm-k{color:#8b949e;}
+.cfm-v{font-weight:600;font-family:'JetBrains Mono',monospace;font-size:12px;color:#e6edf3;}
+.cfm-formula{background:#0d1117;border:1px solid #30363d;border-radius:6px;padding:10px 12px;font-family:'JetBrains Mono',monospace;font-size:13px;color:#58a6ff;font-weight:600;margin-bottom:8px;letter-spacing:-.2px;}
+.cfm-example{font-size:12px;color:#6b7280;line-height:1.7;background:#0d1117;border-radius:5px;padding:9px 11px;font-family:'JetBrains Mono',monospace;white-space:pre-line;}
+.cfm-tip{font-size:12px;color:#c9d1d9;line-height:1.65;margin-bottom:9px;padding-left:2px;}
+.cfm-tip:last-child{margin-bottom:0;}
+@media(max-width:600px){.milli-header{flex-direction:column;}.milli-hero-val{text-align:left;width:100%;min-width:0;}}
 </style>
 </head>
 <body>
@@ -248,6 +340,7 @@ hr.sep{border:none;border-top:1px solid #21262d;margin:16px 0;}
   <button class="main-tab" data-tab="prediction" onclick="switchTab('prediction')">&#128302; Prediction</button>
   <button class="main-tab" data-tab="scenarios" onclick="switchTab('scenarios')">&#128200; Scenarios</button>
   <button class="main-tab" data-tab="history" onclick="switchTab('history')">&#128218; History</button>
+  <button class="main-tab" data-tab="milli" onclick="switchTab('milli')" style="color:#3fb950;">&#128640; Road to a Milli</button>
 </div>
 
 <!-- TAB 1: CHART -->
@@ -532,6 +625,139 @@ hr.sep{border:none;border-top:1px solid #21262d;margin:16px 0;}
     <div class="card-grid" id="halvCards"></div>
   </div>
 </div><!-- /tab-history -->
+
+<!-- TAB 6: ROAD TO A MILLI -->
+<div class="tab-panel" id="tab-milli">
+  <div class="milli-wrap">
+
+    <!-- HERO HEADER -->
+    <div class="milli-header">
+      <div>
+        <div class="milli-title">&#128640; Road to a Milli</div>
+        <div class="milli-subtitle">Your personal C5 cycle trade plan. Set your capital, expected bottom, and target — every number updates live. This is the plan we built together based on 4-cycle historical analysis (R²=0.954) and Coinbase CFM futures.</div>
+      </div>
+      <div class="milli-hero-val">
+        <div class="milli-hero-lbl">Projected exit value</div>
+        <div class="milli-hero-num" id="milliHeroNum">$—</div>
+        <div class="milli-hero-roi" id="milliHeroRoi"></div>
+        <div class="milli-hero-sub" id="milliHeroSub">Enter your capital below</div>
+      </div>
+    </div>
+
+    <!-- SETUP INPUTS -->
+    <div class="milli-setup-grid">
+      <div class="milli-input-card">
+        <label class="mic-label" for="milliCapital">Total capital to deploy</label>
+        <div class="mic-input-wrap"><span class="mic-prefix">$</span><input type="number" id="milliCapital" value="10000" min="100" step="500" oninput="updateMilli()"></div>
+        <div class="mic-hint">Split across 4 tiered entries below</div>
+      </div>
+      <div class="milli-input-card">
+        <label class="mic-label" for="milliBottom">Expected bottom price</label>
+        <div class="mic-input-wrap"><span class="mic-prefix">$</span><input type="number" id="milliBottom" value="47000" min="10000" step="1000" oninput="updateMilli()"></div>
+        <div class="mic-hint">Regression: ~$35K · Consensus: $44K–$57K</div>
+      </div>
+      <div class="milli-input-card">
+        <label class="mic-label" for="milliTop">C5 ATH target price</label>
+        <div class="mic-input-wrap"><span class="mic-prefix">$</span><input type="number" id="milliTop" value="280000" min="50000" step="10000" oninput="updateMilli()"></div>
+        <div class="mic-hint">Analyst range: $190K–$315K (2028–2029)</div>
+      </div>
+      <div class="milli-input-card">
+        <label class="mic-label" for="milliLev">Futures leverage</label>
+        <div class="mic-input-wrap"><input type="number" id="milliLev" value="5" min="1" max="10" step="1" oninput="updateMilli()"><span class="mic-suffix">×</span></div>
+        <div class="mic-hint">BIT contracts: 0.01 BTC · 10–20% margin req.</div>
+      </div>
+    </div>
+
+    <!-- TIERED ENTRY PLAN -->
+    <div class="milli-section-hdr">&#128203; Tiered Entry Plan — Deploy Capital Progressively</div>
+    <div class="milli-tier-grid" id="milliTierGrid"><!-- JS --></div>
+
+    <!-- PORTFOLIO PROJECTION -->
+    <div class="milli-section-hdr">&#128202; Portfolio Projection at Target</div>
+    <div class="milli-proj-grid">
+      <div class="milli-proj-card">
+        <div class="mpc-lbl">Avg entry price</div>
+        <div class="mpc-val" id="milliAvgEntry">—</div>
+      </div>
+      <div class="milli-proj-card">
+        <div class="mpc-lbl">Total BTC exposure</div>
+        <div class="mpc-val" id="milliTotalBTC">—</div>
+      </div>
+      <div class="milli-proj-card">
+        <div class="mpc-lbl">Total margin used</div>
+        <div class="mpc-val" id="milliMarginUsed">—</div>
+        <div class="mpc-sub">at <span id="milliLevLbl">5</span>× leverage</div>
+      </div>
+      <div class="milli-proj-card mpc-blue">
+        <div class="mpc-lbl">Total contracts</div>
+        <div class="mpc-val" id="milliContracts">—</div>
+        <div class="mpc-sub">BIT @ 0.01 BTC each</div>
+      </div>
+      <div class="milli-proj-card mpc-green">
+        <div class="mpc-lbl">Portfolio at target</div>
+        <div class="mpc-val g" id="milliAtTarget">—</div>
+        <div class="mpc-sub">incl. original margin</div>
+      </div>
+      <div class="milli-proj-card mpc-green">
+        <div class="mpc-lbl">Total profit</div>
+        <div class="mpc-val g" id="milliProfit">—</div>
+        <div class="mpc-sub" id="milliROILine">— ROI</div>
+      </div>
+    </div>
+
+    <!-- SCENARIOS TABLE -->
+    <div class="milli-section-hdr">&#127919; Outcome Scenarios</div>
+    <div class="milli-sc-wrap">
+      <table class="milli-sc-table">
+        <thead><tr>
+          <th>Scenario</th><th>Bottom</th><th>Target ATH</th>
+          <th>Portfolio value</th><th>Profit</th><th>Multiple</th>
+        </tr></thead>
+        <tbody id="milliScRows"><!-- JS --></tbody>
+      </table>
+    </div>
+
+    <!-- SIGNAL CHECKLIST -->
+    <div class="milli-section-hdr">&#9989; Signal Checklist — Your Entry Triggers</div>
+    <div class="milli-checklist-sub">Track these in real time. The more green, the closer we are to the bottom. Our best tested config fires in the last 14 days of every historical bottom with 0.5% false positive rate.</div>
+    <div class="milli-checklist-grid" id="milliChecklist"><!-- JS --></div>
+
+    <!-- COINBASE CFM REFERENCE -->
+    <div class="milli-section-hdr">&#9889; Coinbase CFM Quick Reference</div>
+    <div class="milli-cfm-grid">
+      <div class="milli-cfm-card">
+        <div class="cfm-title">BIT Contract Specs</div>
+        <div class="cfm-row"><span class="cfm-k">Ticker format</span><span class="cfm-v">BIT-MMMYY-CDE</span></div>
+        <div class="cfm-row"><span class="cfm-k">Example</span><span class="cfm-v">BIT-OCT26-CDE</span></div>
+        <div class="cfm-row"><span class="cfm-k">Contract size</span><span class="cfm-v">0.01 BTC</span></div>
+        <div class="cfm-row"><span class="cfm-k">Settlement</span><span class="cfm-v">Cash USD, monthly</span></div>
+        <div class="cfm-row"><span class="cfm-k">Funding rate</span><span class="cfm-v">None (expiring)</span></div>
+        <div class="cfm-row"><span class="cfm-k">Maker fee</span><span class="cfm-v">0.01–0.05%</span></div>
+        <div class="cfm-row"><span class="cfm-k">Taker fee</span><span class="cfm-v">0.10–0.11%</span></div>
+        <div class="cfm-row"><span class="cfm-k">Initial margin</span><span class="cfm-v">10–20% of notional</span></div>
+        <div class="cfm-row"><span class="cfm-k">Max leverage</span><span class="cfm-v">~5–10×</span></div>
+      </div>
+      <div class="milli-cfm-card">
+        <div class="cfm-title">P&amp;L Formula</div>
+        <div class="cfm-formula">(Exit − Entry) × 0.01 × Contracts</div>
+        <div class="cfm-example" id="cfmExample">Enter your inputs above to see an example.</div>
+        <div class="cfm-title" style="margin-top:14px;">Key Notes</div>
+        <div class="cfm-row"><span class="cfm-k">Basis at expiry</span><span class="cfm-v">Converges to 0</span></div>
+        <div class="cfm-row"><span class="cfm-k">Roll timing</span><span class="cfm-v">1–2 wks before expiry</span></div>
+        <div class="cfm-row"><span class="cfm-k">OCO orders</span><span class="cfm-v">Not natively supported</span></div>
+      </div>
+      <div class="milli-cfm-card">
+        <div class="cfm-title">Execution Checklist</div>
+        <div class="cfm-tip">&#9888;&#65039; <strong>No native OCO</strong> — place TP and SL as separate GTC limit orders. Cancel the other one manually when filled.</div>
+        <div class="cfm-tip">&#128197; <strong>Roll before expiry</strong> — close current month and open next month 1–2 weeks before settlement to avoid forced cash out.</div>
+        <div class="cfm-tip">&#127919; <strong>Use limit orders</strong> at entry to pay maker fees (0.01–0.05%) not taker (0.10–0.11%). Saves ~0.1% on large positions.</div>
+        <div class="cfm-tip">&#128200; <strong>No funding rate decay</strong> — unlike perps, you can hold through the full bear without bleeding funding. This is why we use expiring contracts.</div>
+        <div class="cfm-tip">&#128274; <strong>Risk rule</strong> — never deploy more than you can afford to lose entirely. Leverage amplifies losses too.</div>
+      </div>
+    </div>
+
+  </div>
+</div><!-- /tab-milli -->
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/hammer.js/2.0.8/hammer.min.js"></script>
@@ -8340,7 +8566,212 @@ applyPrice = function(price, change) {
   renderLevels(price);
   updateScenario();
   renderAlerts(price);
+  updateMilli();
 };
+
+// ══════════════════════════════════════════════════════════════════════
+// ROAD TO A MILLI
+// ══════════════════════════════════════════════════════════════════════
+function updateMilli(){
+  const capital  = parseFloat(document.getElementById('milliCapital').value)||10000;
+  const bottom   = parseFloat(document.getElementById('milliBottom').value)||47000;
+  const top      = parseFloat(document.getElementById('milliTop').value)||280000;
+  const lev      = Math.max(1,Math.min(10,parseFloat(document.getElementById('milliLev').value)||5));
+  const price    = typeof livePrice!=='undefined'?livePrice:61770;
+
+  // ── TIERS ─────────────────────────────────────────────────────────
+  const TIERS=[
+    {n:1,label:'Alert 1 — Early Warning',  price:57000, pct:10, note:'-55% from ATH · Analyst consensus upper bound'},
+    {n:2,label:'Alert 2 — In the Zone',    price:50000, pct:20, note:'-60% from ATH · Central maturity-adjusted estimate'},
+    {n:3,label:'Alert 3 — High Conviction',price:44000, pct:30, note:'-65% from ATH · Conservative historical analog'},
+    {n:4,label:'Alert 4 — Capitulation',   price:bottom,pct:40, note:'8%+ weekly flush below $50K · Deploy final 40%'},
+  ];
+
+  let totalMargin=0,totalBTC=0,totalContracts=0,totalPnL=0,weightedEntry=0;
+  let tierHTML='';
+
+  TIERS.forEach(t=>{
+    const alloc      = capital*t.pct/100;
+    const notional   = alloc*lev;
+    const contracts  = Math.max(0,Math.floor(notional/(t.price*0.01)));
+    const btcExp     = contracts*0.01;
+    const marginReq  = contracts*t.price*0.01/lev;
+    const pnl        = (top-t.price)*0.01*contracts;
+    const dist       = price-t.price;
+    const status     = t.price>=price?'fired':(dist<6000?'close':'waiting');
+    const statusLbl  = t.price>=price?'&#10003; FIRED':(status==='close'?'CLOSE':'WAITING');
+
+    totalMargin   += marginReq;
+    totalBTC      += btcExp;
+    totalContracts+= contracts;
+    totalPnL      += pnl;
+    weightedEntry += btcExp*t.price;
+
+    tierHTML+=`
+    <div class="milli-tier-card mtc-${status}">
+      <div class="mtc-header">
+        <div><div class="mtc-num">Tier ${t.n} &middot; ${t.pct}% of capital</div><div class="mtc-label">${t.label}</div></div>
+        <div class="mtc-badge mtb-${status}">${statusLbl}</div>
+      </div>
+      <div class="mtc-price">$${t.price.toLocaleString()}</div>
+      <div class="mtc-rows">
+        <div class="mtc-row"><span class="mtc-rk">Capital allocated</span><span class="mtc-rv">$${Math.round(alloc).toLocaleString()}</span></div>
+        <div class="mtc-row"><span class="mtc-rk">Buying power (${lev}&times;)</span><span class="mtc-rv">$${Math.round(notional).toLocaleString()}</span></div>
+        <div class="mtc-row"><span class="mtc-rk">BIT contracts</span><span class="mtc-rv">${contracts.toLocaleString()}</span></div>
+        <div class="mtc-row"><span class="mtc-rk">BTC exposure</span><span class="mtc-rv">${btcExp.toFixed(2)} BTC</span></div>
+        <div class="mtc-row"><span class="mtc-rk">Margin required</span><span class="mtc-rv">~$${Math.round(marginReq).toLocaleString()}</span></div>
+        <div class="mtc-row mtc-profit"><span class="mtc-rk">Profit at $${(top/1000).toFixed(0)}K target</span><span class="mtc-rv">+$${Math.round(pnl).toLocaleString()}</span></div>
+      </div>
+      <div class="mtc-note">${t.note}</div>
+    </div>`;
+  });
+
+  document.getElementById('milliTierGrid').innerHTML=tierHTML;
+
+  // ── SUMMARY ────────────────────────────────────────────────────────
+  const avgEntry  = totalBTC>0?weightedEntry/totalBTC:0;
+  const portfolio = totalMargin+totalPnL;
+  const roi       = totalMargin>0?totalPnL/totalMargin:0;
+
+  document.getElementById('milliAvgEntry').textContent   = '$'+Math.round(avgEntry).toLocaleString();
+  document.getElementById('milliTotalBTC').textContent   = totalBTC.toFixed(2)+' BTC';
+  document.getElementById('milliMarginUsed').textContent = '$'+Math.round(totalMargin).toLocaleString();
+  document.getElementById('milliLevLbl').textContent     = lev;
+  document.getElementById('milliContracts').textContent  = totalContracts.toLocaleString();
+  document.getElementById('milliAtTarget').textContent   = '$'+Math.round(portfolio).toLocaleString();
+  document.getElementById('milliProfit').textContent     = '+$'+Math.round(totalPnL).toLocaleString();
+  document.getElementById('milliROILine').textContent    = roi.toFixed(1)+'× return on capital';
+
+  // Hero
+  document.getElementById('milliHeroNum').textContent  = '$'+Math.round(portfolio).toLocaleString();
+  document.getElementById('milliHeroRoi').textContent  = '+'+roi.toFixed(1)+'× · $'+Math.round(totalPnL).toLocaleString()+' profit';
+  document.getElementById('milliHeroSub').textContent  = totalBTC.toFixed(2)+' BTC exposure · '+totalContracts+' BIT contracts · $'+Math.round(totalMargin).toLocaleString()+' margin';
+
+  // ── SCENARIOS TABLE ────────────────────────────────────────────────
+  const SCENARIOS=[
+    {cls:'',    name:'&#129408; Bear — regression bottom', bot:35000,  tgt:Math.round(top*0.65)},
+    {cls:'sc-base', name:'&#127919; Base — your inputs',       bot:bottom, tgt:top},
+    {cls:'',    name:'&#128640; Bull — ETF supercycle',     bot:44000,  tgt:Math.round(top*1.25)},
+    {cls:'',    name:'&#129689; Moon — max optimism',       bot:57000,  tgt:Math.round(top*1.6)},
+  ];
+  let scHTML='';
+  SCENARIOS.forEach(s=>{
+    let scMargin=0,scPnL=0;
+    TIERS.forEach(t=>{
+      const ep=t.n===4?s.bot:t.price;
+      const c=Math.max(0,Math.floor((capital*t.pct/100*lev)/(ep*0.01)));
+      const m=c*ep*0.01/lev;
+      scMargin+=m; scPnL+=( s.tgt-ep)*0.01*c;
+    });
+    const scPort=scMargin+scPnL;
+    const scROI=scMargin>0?scPnL/scMargin:0;
+    const profColor=scPnL>=0?'g':'r';
+    scHTML+=`<tr class="${s.cls}">
+      <td class="sc-name">${s.name}</td>
+      <td class="sc-num">$${s.bot.toLocaleString()}</td>
+      <td class="sc-num">$${s.tgt.toLocaleString()}</td>
+      <td class="sc-num b">$${Math.round(scPort).toLocaleString()}</td>
+      <td class="sc-num ${profColor}">+$${Math.round(scPnL).toLocaleString()}</td>
+      <td class="sc-num ${profColor}">${scROI.toFixed(1)}&times;</td>
+    </tr>`;
+  });
+  document.getElementById('milliScRows').innerHTML=scHTML;
+
+  // ── SIGNAL CHECKLIST ──────────────────────────────────────────────
+  const H4D    = new Date('2024-04-20');
+  const dph    = Math.floor((new Date()-H4D)/86400000);
+  const inGate = dph>=650&&dph<=1050;
+  const dd     = ((price-126186)/126186*100);
+  const SIGNALS=[
+    {
+      name:'Timing Gate Active',
+      desc:`Day ${dph} post-H4 · Gate window: Day 650–1050 · ${inGate?'Currently INSIDE gate':'Gate opens at Day 650'}`,
+      conf:'92% confidence',
+      status:inGate?'fired':(dph>550?'close':'waiting'),
+      icon:inGate?'&#9989;':'&#9203;'
+    },
+    {
+      name:'Alert 1 — Price below $57,000',
+      desc:`Deploy 10% · Current: $${Math.round(price).toLocaleString()} · Need: ${price<57000?'DONE':'$'+(price-57000).toLocaleString()+' more drop'}`,
+      conf:'85% precision',
+      status:price<57000?'fired':(price<63000?'close':'waiting'),
+      icon:price<57000?'&#9989;':'&#128276;'
+    },
+    {
+      name:'Alert 2 — Price below $50,000',
+      desc:`Deploy 20% · -60% from ATH · Central estimate for C5 bottom zone`,
+      conf:'78% precision',
+      status:price<50000?'fired':(price<56000?'close':'waiting'),
+      icon:price<50000?'&#9989;':'&#128276;'
+    },
+    {
+      name:'Alert 3 — Price below $44,000',
+      desc:`Deploy 30% · -65% from ATH · Conservative historical analog`,
+      conf:'71% precision',
+      status:price<44000?'fired':(price<50000?'close':'waiting'),
+      icon:price<44000?'&#9989;':'&#128276;'
+    },
+    {
+      name:'Alert 4 — Capitulation Flush',
+      desc:`Deploy final 40% · 8%+ weekly drop while below $50K · Fires in last 14 days of every historical bottom`,
+      conf:'88% precision · 0.5% false positive',
+      status:price<50000?'close':'waiting',
+      icon:'&#128680;'
+    },
+    {
+      name:'Drawdown ≥ 70% from ATH',
+      desc:`Current drawdown: ${dd.toFixed(1)}% · Need: -70% ($${Math.round(126186*0.3).toLocaleString()}) · Best sniper signal (4/4 cycles)`,
+      conf:'4/4 historical cycles',
+      status:dd<=-70?'fired':(dd<=-60?'close':'waiting'),
+      icon:dd<=-70?'&#9989;':'&#128200;'
+    },
+    {
+      name:'Regression Zone $35K–$57K',
+      desc:`Linear regression R²=0.954: C1(-92%) C2(-85%) C3(-83%) C4(-77%) → C5 projected -72% = ~$35K`,
+      conf:'R²=0.954 fit',
+      status:price<57000?'fired':(price<65000?'close':'waiting'),
+      icon:price<57000?'&#9989;':'&#128202;'
+    },
+    {
+      name:'Analyst Consensus Zone $44K–$57K',
+      desc:`ETF/maturity premium shifts bottom higher. Most analysts expect -55% to -65% range. Not yet reached.`,
+      conf:'Institutional consensus',
+      status:price<57000?'fired':(price<66000?'close':'waiting'),
+      icon:price<57000?'&#9989;':'&#128209;'
+    },
+    {
+      name:'Day 900 Post-H4 Peak Window',
+      desc:`Historical avg bottom: Day 896 post-halving · Oct 2026 ±60 days · C4 halving: Apr 20, 2024`,
+      conf:'Avg of 3 cycles',
+      status:dph>=840&&dph<=960?'fired':(dph>=700?'close':'waiting'),
+      icon:dph>=840&&dph<=960?'&#9989;':'&#128197;'
+    },
+  ];
+  let chkHTML='';
+  SIGNALS.forEach(s=>{
+    const stLbl=s.status==='fired'?'ACTIVE':(s.status==='close'?'APPROACHING':'WAITING');
+    chkHTML+=`
+    <div class="milli-chk chk-${s.status}">
+      <div class="mchk-icon">${s.icon}</div>
+      <div class="mchk-body">
+        <div class="mchk-name">${s.name}</div>
+        <div class="mchk-desc">${s.desc}</div>
+        <div class="mchk-foot">
+          <span class="mchk-conf">${s.conf}</span>
+          <span class="mchk-status s-${s.status}">${stLbl}</span>
+        </div>
+      </div>
+    </div>`;
+  });
+  document.getElementById('milliChecklist').innerHTML=chkHTML;
+
+  // ── CFM EXAMPLE ────────────────────────────────────────────────────
+  const exC=Math.max(1,Math.floor((capital*0.4*lev)/(bottom*0.01)));
+  const exPnL=Math.round((top-bottom)*0.01*exC);
+  document.getElementById('cfmExample').textContent=
+    `Tier 4 example:\n${exC} contracts @ $${bottom.toLocaleString()} entry\nExit @ $${(top/1000).toFixed(0)}K target\n= +$${exPnL.toLocaleString()} profit on Tier 4 alone`;
+}
+updateMilli();
 </script>
 </body>
 </html>
