@@ -307,6 +307,29 @@ hr.sep{border:none;border-top:1px solid #21262d;margin:16px 0;}
 .cfm-tip{font-size:12px;color:#c9d1d9;line-height:1.65;margin-bottom:9px;padding-left:2px;}
 .cfm-tip:last-child{margin-bottom:0;}
 @media(max-width:600px){.milli-header{flex-direction:column;}.milli-hero-val{text-align:left;width:100%;min-width:0;}}
+
+/* ── MARGIN RISK SECTION ── */
+.margin-risk-banner{border-radius:8px;padding:12px 16px;margin-bottom:14px;display:flex;gap:10px;align-items:flex-start;font-size:13px;line-height:1.6;}
+.margin-risk-banner.mrb-red{background:rgba(248,81,73,.1);border:1px solid rgba(248,81,73,.4);color:#f85149;}
+.margin-risk-banner.mrb-yellow{background:rgba(210,153,34,.08);border:1px solid rgba(210,153,34,.35);color:#d29922;}
+.margin-risk-banner.mrb-green{background:rgba(63,185,80,.07);border:1px solid rgba(63,185,80,.3);color:#3fb950;}
+.margin-risk-banner .mrb-icon{font-size:18px;flex-shrink:0;margin-top:1px;}
+.margin-risk-banner strong{font-weight:700;}
+.margin-tier-table{width:100%;border-collapse:collapse;margin-bottom:10px;}
+.margin-tier-table th{text-align:left;padding:9px 12px;background:#161b22;color:#8b949e;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;}
+.margin-tier-table td{padding:9px 12px;border-bottom:1px solid rgba(255,255,255,.04);font-size:12px;white-space:nowrap;font-family:'JetBrains Mono',monospace;}
+.margin-tier-table tr:last-child td{border-bottom:none;}
+.margin-tier-table tr:hover td{background:rgba(255,255,255,.02);}
+.margin-tier-table .mt-tier{font-family:'Inter',sans-serif;font-weight:600;color:#e6edf3;}
+.gap-pill{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700;font-family:'Inter',sans-serif;}
+.gap-pill.gp-green{background:rgba(63,185,80,.15);color:#3fb950;border:1px solid rgba(63,185,80,.3);}
+.gap-pill.gp-yellow{background:rgba(210,153,34,.15);color:#d29922;border:1px solid rgba(210,153,34,.35);}
+.gap-pill.gp-red{background:rgba(248,81,73,.15);color:#f85149;border:1px solid rgba(248,81,73,.3);}
+.margin-rec-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px;margin-top:12px;}
+.margin-rec-card{background:#161b22;border:1px solid #21262d;border-radius:7px;padding:11px 14px;}
+.mrc-lbl{font-size:10px;color:#8b949e;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;font-weight:600;}
+.mrc-val{font-size:15px;font-weight:700;font-family:'JetBrains Mono',monospace;}
+.mrc-sub{font-size:11px;color:#6b7280;margin-top:2px;}
 </style>
 </head>
 <body>
@@ -715,6 +738,25 @@ hr.sep{border:none;border-top:1px solid #21262d;margin:16px 0;}
         </tr></thead>
         <tbody id="milliScRows"><!-- JS --></tbody>
       </table>
+    </div>
+
+    <!-- MARGIN & LIQUIDATION RISK -->
+    <div class="milli-section-hdr">&#9888;&#65039; Margin &amp; Liquidation Risk</div>
+    <div id="milliBanner"><!-- JS --></div>
+    <div style="overflow-x:auto;border-radius:8px;border:1px solid #21262d;margin-bottom:12px;">
+      <table class="margin-tier-table">
+        <thead><tr>
+          <th>Tier</th><th>Entry</th><th>Initial margin</th>
+          <th>Maint. floor</th><th>Liq. price</th>
+          <th>Adverse move to liq.</th><th>$3K gap</th><th>$5K gap</th>
+          <th>Safe max lev.</th>
+        </tr></thead>
+        <tbody id="milliMarginRows"><!-- JS --></tbody>
+      </table>
+    </div>
+    <div class="margin-rec-grid" id="milliMarginRec"><!-- JS --></div>
+    <div style="font-size:11px;color:#6b7280;margin-bottom:20px;line-height:1.65;padding:10px 14px;background:#161b22;border-radius:7px;border:1px solid #21262d;">
+      &#128338; <strong style="color:#8b949e;">How Coinbase CFM margin works:</strong> Mark-to-market daily at ~4 PM ET — cash moves in/out of your balance every night. Maintenance margin = 50% of initial. Liquidation fires automatically on a wick to the mark price (BTC index), not last traded. <strong style="color:#d29922;">Critical: Fri 5 PM ET → Sun 6 PM ET the market halts ~45 hours</strong> — BTC keeps moving globally and you cannot exit. A gap opening Monday against you past maintenance = instant liquidation. Historical weekend gaps: often $2K–$5K+.
     </div>
 
     <!-- SIGNAL CHECKLIST -->
@@ -8632,6 +8674,64 @@ function updateMilli(){
   const avgEntry  = totalBTC>0?weightedEntry/totalBTC:0;
   const portfolio = totalMargin+totalPnL;
   const roi       = totalMargin>0?totalPnL/totalMargin:0;
+
+  // ── MARGIN RISK ────────────────────────────────────────────────────
+  // Liq distance = entry / (lev × 2)  [from maintenance = 50% of initial]
+  // Liq price    = entry × (1 − 1/(lev×2))
+  let worstGapStatus='green';
+  let marginHTML='';
+  const GAP3=3000,GAP5=5000;
+  TIERS.forEach(t=>{
+    const ep       = t.price;
+    const alloc    = capital*t.pct/100;
+    const contracts= Math.max(0,Math.floor(alloc*lev/(ep*0.01)));
+    const notional = contracts*0.01*ep;
+    const initMgn  = notional/lev;
+    const maintMgn = initMgn*0.5;
+    const liqDist  = ep/(lev*2);           // $ drop before liquidation
+    const liqPrice = ep-liqDist;
+    const safeMaxLev= Math.floor(ep/(2*GAP3)); // survives $3K gap
+    // $3K gap: SAFE if liqDist>3000, DANGER if ≤3000
+    // $5K gap: SAFE if liqDist>5000, RISKY if 3000<liqDist≤5000, DANGER if ≤3000
+    const g3ok = liqDist>GAP3?'gp-green':'gp-red';
+    const g5ok = liqDist>GAP5?'gp-green':(liqDist>GAP3?'gp-yellow':'gp-red');
+    const g3lbl= liqDist>GAP3?'SAFE':'DANGER';
+    const g5lbl= liqDist>GAP5?'SAFE':(liqDist>GAP3?'RISKY':'DANGER');
+    if(g3ok==='gp-red') worstGapStatus='red';
+    else if(g5ok!=='gp-green'&&worstGapStatus==='green') worstGapStatus='yellow';
+    marginHTML+=`<tr>
+      <td class="mt-tier">T${t.n} ${t.price<bottom&&t.n===4?'(flush)':''}</td>
+      <td>$${ep.toLocaleString()}</td>
+      <td>$${Math.round(initMgn).toLocaleString()}</td>
+      <td>$${Math.round(maintMgn).toLocaleString()}</td>
+      <td style="color:#f85149;">$${Math.round(liqPrice).toLocaleString()}</td>
+      <td style="color:${liqDist>GAP5?'#3fb950':liqDist>GAP3?'#d29922':'#f85149'}">$${Math.round(liqDist).toLocaleString()}</td>
+      <td><span class="gap-pill ${g3ok}">${g3lbl}</span></td>
+      <td><span class="gap-pill ${g5ok}">${g5lbl}</span></td>
+      <td style="color:#58a6ff;">${safeMaxLev}&times;</td>
+    </tr>`;
+  });
+  document.getElementById('milliMarginRows').innerHTML=marginHTML;
+
+  // Banner
+  const safeGlobal = Math.min(...TIERS.map(t=>Math.floor(t.price/(2*GAP3))));
+  const safeG5     = Math.min(...TIERS.map(t=>Math.floor(t.price/(2*GAP5))));
+  const bannerClass=worstGapStatus==='red'?'mrb-red':worstGapStatus==='yellow'?'mrb-yellow':'mrb-green';
+  const bannerIcon=worstGapStatus==='red'?'&#128680;':worstGapStatus==='yellow'?'&#9888;&#65039;':'&#9989;';
+  const bannerMsg={
+    red:`<strong>High liquidation risk at ${lev}×.</strong> One or more tiers are within $3K of forced liquidation — inside the range of a typical weekend gap ($2K–$5K+). Coinbase halts Fri 5 PM ET → Sun 6 PM ET and you <em>cannot exit</em>. A gap opening against you fires liquidation the moment the market reopens. <strong>Reduce leverage to ≤${safeGlobal}× or close before Friday 4 PM ET.</strong>`,
+    yellow:`<strong>Moderate risk at ${lev}×.</strong> Positions survive a typical $3K gap but a $5K+ weekend opening (which has happened) reaches your maintenance floor. Recommended: reduce to ≤${safeG5}× before weekends for full $5K gap protection.`,
+    green:`<strong>Margin healthy at ${lev}×.</strong> All positions survive a $5K+ adverse move before hitting maintenance. Still reduce size or leverage before weekends as a precaution — large gaps do happen.`
+  };
+  document.getElementById('milliBanner').innerHTML=
+    `<div class="margin-risk-banner ${bannerClass}"><span class="mrb-icon">${bannerIcon}</span><span>${bannerMsg[worstGapStatus]}</span></div>`;
+
+  // Recommendation cards
+  document.getElementById('milliMarginRec').innerHTML=`
+    <div class="margin-rec-card"><div class="mrc-lbl">Your leverage</div><div class="mrc-val" style="color:${worstGapStatus==='red'?'#f85149':worstGapStatus==='yellow'?'#d29922':'#3fb950'}">${lev}&times;</div><div class="mrc-sub">Selected above</div></div>
+    <div class="margin-rec-card"><div class="mrc-lbl">Safe for $3K gap</div><div class="mrc-val" style="color:#d29922;">&le;${safeGlobal}&times;</div><div class="mrc-sub">Survives typical weekend gap</div></div>
+    <div class="margin-rec-card"><div class="mrc-lbl">Safe for $5K gap</div><div class="mrc-val" style="color:#3fb950;">&le;${safeG5}&times;</div><div class="mrc-sub">Survives large gap event</div></div>
+    <div class="margin-rec-card"><div class="mrc-lbl">Worst-case weekend rule</div><div class="mrc-val" style="color:#bc8cff;">Fri 4PM</div><div class="mrc-sub">Reduce or close before halt</div></div>`;
 
   document.getElementById('milliAvgEntry').textContent   = '$'+Math.round(avgEntry).toLocaleString();
   document.getElementById('milliTotalBTC').textContent   = totalBTC.toFixed(2)+' BTC';
