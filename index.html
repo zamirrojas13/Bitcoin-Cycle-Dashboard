@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BTC Halving Cycle Map</title>
+<title>Bitcoin Cycle Dashboard — C4 Bear Bottom Tracker</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
 html,body{width:100%;background:#0d1117;color:#e6edf3;font-family:'Courier New',monospace;}
@@ -24,7 +24,7 @@ html,body{width:100%;background:#0d1117;color:#e6edf3;font-family:'Courier New',
 .sl{font-size:9px;color:#8b949e;text-transform:uppercase;letter-spacing:.08em;margin-bottom:2px;}
 .sv{font-size:13px;font-weight:600;}
 
-/* ── TOOLBAR — FIX #6: two clean rows, no wrapping ── */
+/* ── TOOLBAR ── */
 .tb{background:#0d1117;border-bottom:1px solid #21262d;position:sticky;top:0;z-index:30;padding:0;}
 .tb-row{display:flex;align-items:center;gap:4px;padding:5px 18px;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;}
 .tb-row::-webkit-scrollbar{display:none;}
@@ -49,7 +49,7 @@ html,body{width:100%;background:#0d1117;color:#e6edf3;font-family:'Courier New',
 .lsq{width:13px;height:8px;border-radius:2px;flex-shrink:0;}
 .upd{padding:4px 18px 6px;font-size:10px;color:#374151;}
 
-/* ── FIX #8: YOU ARE HERE progress bar ── */
+/* ── CYCLE PROGRESS BAR ── */
 .cycle-progress{padding:14px 18px;background:#0d1117;border-top:1px solid #21262d;border-bottom:1px solid #21262d;}
 .cp-title{font-size:10px;color:#8b949e;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;display:flex;justify-content:space-between;}
 .cp-bar-wrap{position:relative;width:100%;height:28px;background:#161b22;border-radius:6px;overflow:hidden;border:1px solid #21262d;}
@@ -61,14 +61,14 @@ html,body{width:100%;background:#0d1117;color:#e6edf3;font-family:'Courier New',
 /* ── ANALYSIS SECTION ── */
 .analysis{padding:0 0 40px;}
 
-/* FIX #7: sticky mini-nav */
+/* ── ANALYSIS NAV ── */
 .an-nav{position:sticky;top:66px;z-index:20;background:#0d1117;border-bottom:1px solid #21262d;padding:0 18px;display:flex;gap:0;overflow-x:auto;scrollbar-width:none;}
 .an-nav::-webkit-scrollbar{display:none;}
 .an-nav-btn{font-size:11px;padding:9px 14px;background:transparent;border:none;border-bottom:2px solid transparent;color:#8b949e;cursor:pointer;font-family:inherit;white-space:nowrap;transition:all .15s;}
 .an-nav-btn:hover{color:#e6edf3;}
 .an-nav-btn.active{color:#58a6ff;border-bottom-color:#58a6ff;}
 
-/* FIX #7: collapsible sections */
+/* ── COLLAPSIBLE SECTIONS ── */
 .an-section{border-bottom:1px solid #21262d;}
 .an-section-hdr{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;cursor:pointer;user-select:none;}
 .an-section-hdr:hover{background:rgba(255,255,255,.02);}
@@ -101,7 +101,7 @@ html,body{width:100%;background:#0d1117;color:#e6edf3;font-family:'Courier New',
 .ck{color:#8b949e;}
 .cv2{font-weight:600;font-family:inherit;}
 
-/* FIX #10: dynamic insight cards */
+/* ── INSIGHT CARDS ── */
 .ins-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px;}
 .ins{background:#161b22;border:1px solid #21262d;border-radius:8px;padding:14px;border-left:3px solid #d29922;position:relative;}
 .ins.gl{border-left-color:#3fb950;}
@@ -162,6 +162,35 @@ hr.sep{border:none;border-top:1px solid #21262d;margin:16px 0;}
 .level-card .lc-dist{font-size:11px;font-weight:600;margin-top:4px;}
 .levels-ts{font-size:9px;color:#374151;margin-top:6px;}
 
+/* ── ENTRY ALERT PANEL ── */
+.alert-panel{background:#0d1117;border-top:1px solid #21262d;border-bottom:2px solid #d29922;padding:14px 18px;}
+.alert-panel-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#d29922;margin-bottom:10px;display:flex;align-items:center;gap:8px;}
+.alert-panel-title span.dot{width:8px;height:8px;border-radius:50%;background:#d29922;animation:pulse 2s infinite;display:inline-block;}
+.alert-panel-subtitle{font-size:10px;color:#8b949e;margin-bottom:14px;}
+.alert-rows{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:8px;margin-bottom:14px;}
+.alert-row{background:#161b22;border:1px solid #21262d;border-radius:8px;padding:12px 14px;display:flex;justify-content:space-between;align-items:center;position:relative;overflow:hidden;}
+.alert-row::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:3px 0 0 3px;}
+.alert-row.ar-waiting::before{background:#8b949e;}
+.alert-row.ar-close::before{background:#d29922;}
+.alert-row.ar-fired::before{background:#3fb950;}
+.alert-row-left .ar-label{font-size:9px;color:#8b949e;text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px;}
+.alert-row-left .ar-condition{font-size:12px;font-weight:700;color:#e6edf3;}
+.alert-row-left .ar-sub{font-size:10px;color:#6b7280;margin-top:3px;}
+.alert-row-right{text-align:right;flex-shrink:0;margin-left:10px;}
+.alert-row-right .ar-dist{font-size:11px;font-weight:600;color:#8b949e;}
+.alert-row-right .ar-dist.close{color:#d29922;}
+.alert-row-right .ar-dist.fired{color:#3fb950;}
+.ar-badge{font-size:9px;font-weight:700;padding:3px 8px;border-radius:4px;margin-top:4px;display:inline-block;}
+.ar-badge.waiting{background:rgba(139,148,158,.1);color:#8b949e;border:1px solid rgba(139,148,158,.25);}
+.ar-badge.close{background:rgba(210,153,34,.15);color:#d29922;border:1px solid rgba(210,153,34,.4);}
+.ar-badge.fired{background:rgba(63,185,80,.15);color:#3fb950;border:1px solid rgba(63,185,80,.4);}
+.timing-bar-wrap{background:#161b22;border:1px solid #21262d;border-radius:8px;padding:12px 14px;}
+.timing-bar-title{font-size:9px;color:#8b949e;text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px;display:flex;justify-content:space-between;}
+.timing-bar-title span{font-size:10px;color:#f0e68c;font-weight:700;}
+.timing-bar-outer{width:100%;height:10px;background:#21262d;border-radius:5px;overflow:hidden;position:relative;}
+.timing-bar-fill{height:100%;background:linear-gradient(90deg,#58a6ff,#f0e68c);border-radius:5px;transition:width .5s;}
+.timing-bar-labels{display:flex;justify-content:space-between;font-size:9px;color:#6b7280;margin-top:5px;}
+
 /* ── SCENARIO PLANNER ── */
 .scenario-wrap{background:#161b22;border:1px solid #21262d;border-radius:10px;padding:20px;margin-bottom:16px;}
 .scenario-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;}
@@ -196,7 +225,7 @@ hr.sep{border:none;border-top:1px solid #21262d;margin:16px 0;}
 
 <!-- HEADER -->
 <div class="hdr">
-  <div><h1>BTC Halving Cycle Map</h1><p>Real daily data Jul 2010 – Mar 2026 · Live price · Full cycle analysis &amp; prediction</p></div>
+  <div><h1>Bitcoin Cycle Dashboard</h1><p>C4 Bear Bottom Tracker · Real daily data Jul 2010 – Mar 2026 · Live price · Full cycle analysis &amp; prediction</p></div>
   <div class="live">
     <div class="lpv"><span class="ldot"></span>$<span id="lp">68,223</span></div>
     <div class="llbl">BTC/USD · LIVE · Crypto.com&nbsp;<span id="chg" style="color:#3fb950">+1.17%</span></div>
@@ -212,9 +241,27 @@ hr.sep{border:none;border-top:1px solid #21262d;margin:16px 0;}
   <div class="si"><div class="sl">Avg bear</div><div class="sv" style="color:#f85149">383 days</div></div>
   <div class="si"><div class="sl">Est. ATL window</div><div class="sv" style="color:#bc8cff">Oct–Nov 2026</div></div>
   <div class="si"><div class="sl">H5 countdown</div><div class="sv" style="color:#d29922" id="h5days">--</div></div>
+  <div class="si"><div class="sl">Days post-H4</div><div class="sv" style="color:#58a6ff" id="dphdays">708</div></div>
+  <div class="si"><div class="sl">Alert window</div><div class="sv" style="color:#3fb950" id="gateStatus">OPEN</div></div>
 </div>
 
-<!-- FIX #6: TOOLBAR — 2 organised rows, no wrapping -->
+<!-- ENTRY ALERT STATUS PANEL -->
+<div class="alert-panel" id="alertPanel">
+  <div class="alert-panel-title"><span class="dot"></span> Entry Alert Status — C4 Bear Bottom Monitor</div>
+  <div class="alert-panel-subtitle">Based on historical cycle analysis (4 cycles, R²=0.954). Alerts are tiered — deploy capital progressively as each fires. Currently in the timing gate: Day 650–1050 post-halving.</div>
+  <div class="alert-rows" id="alertRows">
+    <!-- Injected by JS -->
+  </div>
+  <div class="timing-bar-wrap">
+    <div class="timing-bar-title">
+      Halving Cycle Timing — Day <span id="hDayLabel">708</span> of ~900 peak window (H4: Apr 20 2024 → est. bottom: Oct 2026)
+    </div>
+    <div class="timing-bar-outer"><div class="timing-bar-fill" id="timingFill" style="width:0%"></div></div>
+    <div class="timing-bar-labels"><span>H4 Apr 2024</span><span>Peak window: Oct 2026 (Day 900)</span><span>H5 Apr 2028</span></div>
+  </div>
+</div>
+
+<!-- TOOLBAR — 2 organised rows, no wrapping -->
 <div class="tb">
   <!-- Row 1: Timeframe, Chart type, Scale -->
   <div class="tb-row">
@@ -278,7 +325,7 @@ hr.sep{border:none;border-top:1px solid #21262d;margin:16px 0;}
 </div>
 <div class="upd" id="upd">Fetching live price...</div>
 
-<!-- FIX #8: YOU ARE HERE — Cycle Progress Bar -->
+<!-- CYCLE PROGRESS BAR -->
 <div class="cycle-progress" id="cycleProgressBar">
   <div class="cp-title">
     <span>&#9670; You Are Here — Cycle 4 Progress (H4: Apr 20, 2024 → H5: ~Apr 18, 2028)</span>
@@ -293,7 +340,7 @@ hr.sep{border:none;border-top:1px solid #21262d;margin:16px 0;}
 <!-- ANALYSIS SECTION -->
 <div class="analysis">
 
-  <!-- FIX #7: Sticky mini-nav -->
+  <!-- ANALYSIS NAV -->
   <div class="an-nav" id="anNav">
     <button class="an-nav-btn active" onclick="scrollToSection('secPred',this)">&#9670; Prediction</button>
     <button class="an-nav-btn" onclick="scrollToSection('secLevels',this)">&#9670; Key Levels</button>
@@ -321,7 +368,7 @@ hr.sep{border:none;border-top:1px solid #21262d;margin:16px 0;}
         <div class="pred-meta">
           <div class="pm"><div class="pm-lbl">C4 ATL — avg date</div><div class="pm-val" style="color:#f85149;">Oct 24, 2026</div></div>
           <div class="pm"><div class="pm-lbl">C4 ATL date range</div><div class="pm-val" style="color:#f85149;">Oct 4 – Nov 21, 2026</div></div>
-          <div class="pm"><div class="pm-lbl">C4 ATL price range</div><div class="pm-val" style="color:#f85149;">$32,000 – $57,000</div></div>
+          <div class="pm"><div class="pm-lbl">C4 ATL price range</div><div class="pm-val" style="color:#f85149;">$35,000 – $57,000</div></div>
           <div class="pm"><div class="pm-lbl">Bear progress today</div><div class="pm-val" id="predDays" style="color:#bc8cff;">175 / ~383 days</div></div>
           <div class="pm"><div class="pm-lbl">H5 projected date</div><div class="pm-val" style="color:#d29922;">Apr 18, 2028</div></div>
           <div class="pm"><div class="pm-lbl">C5 ATH date range</div><div class="pm-val" style="color:#3fb950;">Apr – Oct 2029</div></div>
@@ -356,10 +403,10 @@ hr.sep{border:none;border-top:1px solid #21262d;margin:16px 0;}
       <div class="analog-wrap">
         <div class="analog-chart"><canvas id="analogCanvas"></canvas></div>
         <div class="analog-legend">
-          <div class="ali"><div class="dot" style="background:#8b949e;"></div>C1 Bear (Jun 2011)</div>
-          <div class="ali"><div class="dot" style="background:#d29922;"></div>C2 Bear (Dec 2017)</div>
-          <div class="ali"><div class="dot" style="background:#bc8cff;"></div>C3 Bear (Nov 2021)</div>
-          <div class="ali"><div class="dot" style="background:#f85149;width:12px;height:4px;"></div>C4 Bear (Oct 2025) — CURRENT</div>
+          <div class="ali"><div class="dot" style="background:#8b949e;"></div>C1 Bear (Jun 2011 ATH)</div>
+          <div class="ali"><div class="dot" style="background:#d29922;"></div>C2 Bear (Nov 2013 ATH)</div>
+          <div class="ali"><div class="dot" style="background:#bc8cff;"></div>C3 Bear (Dec 2017 ATH)</div>
+          <div class="ali"><div class="dot" style="background:#f85149;width:12px;height:4px;"></div>C4 Bear (Oct 2025 ATH) — CURRENT</div>
         </div>
         <div class="analog-note" id="analogNote"></div>
       </div>
@@ -381,11 +428,11 @@ hr.sep{border:none;border-top:1px solid #21262d;margin:16px 0;}
             <h4 style="color:#f85149;">&#9660; Bear Scenario — Where does the bottom land?</h4>
             <div class="sc-slider-row">
               <label>Drawdown from ATH ($126,186): <span id="scBearPct" class="r">-75%</span></label>
-              <input type="range" class="sc-slider bear-slider" id="scBearSlider" min="40" max="90" value="75" oninput="updateScenario()">
+              <input type="range" class="sc-slider bear-slider" id="scBearSlider" min="40" max="90" value="62" oninput="updateScenario()">
             </div>
             <div class="sc-results">
               <div class="sc-row"><span class="sck">ATH</span><span class="scv gold">$126,186</span></div>
-              <div class="sc-row"><span class="sck">Projected ATL price</span><span class="scv r" id="scBearPrice">$31,547</span></div>
+              <div class="sc-row"><span class="sck">Projected ATL price</span><span class="scv r" id="scBearPrice">$47,951</span></div>
               <div class="sc-row"><span class="sck">Drop from current price</span><span class="scv r" id="scBearFromNow">—</span></div>
               <div class="sc-row"><span class="sck">Est. bottom date</span><span class="scv pu" id="scBearDate">Oct–Nov 2026</span></div>
               <div class="sc-row"><span class="sck">Historical analog</span><span class="scv dim" id="scBearAnalog">Between C2 (-84%) and C3 (-78%)</span></div>
@@ -7630,7 +7677,7 @@ function applyPrice(price,change){
   document.getElementById('h5days').textContent=h5days+' days';
   if(aData===WK||aData===MO||aData===DA){const last=aData[aData.length-1];if(last){last[4]=price;myChart.data.datasets[0].data[myChart.data.datasets[0].data.length-1]=price;myChart.update('none');}}
   document.getElementById('upd').textContent='Live: '+new Date().toLocaleTimeString()+' · '+liveSrc+' · 30s';
-  renderInsights(price); // FIX #10: update dynamic cards
+  renderInsights(price);
 }
 let liveSrc='Crypto.com';
 async function fetchLive(){
@@ -7756,7 +7803,7 @@ function toggleCycle(idx,btn){
   renderCycleTables();
 }
 
-// FIX #9: Three focused tables instead of one monster table
+// Three focused comparison tables
 function mkTableRows(rows,active){
   const ch=active.map(c=>`<th style="color:#d29922">${c.n}</th>`).join('');
   return{head:'<th>Metric</th>'+ch,body:rows.map(([l,fn,cls])=>`<tr><td class="dim">${l}</td>${active.map(c=>`<td class="${cls}">${fn(c)}</td>`).join('')}</tr>`).join('')};
@@ -8223,13 +8270,122 @@ function updateScenario(){
 updateScenario();
 
 // ══════════════════════════════════════════════════════════════════════
-// PATCH: applyPrice to also update levels
+// ENTRY ALERT PANEL
 // ══════════════════════════════════════════════════════════════════════
-const _origApply=applyPrice;
-applyPrice=function(price,change){
-  _origApply(price,change);
+const H4_DATE = new Date('2024-04-20');
+const ATH_C4 = 126186;
+
+const ALERTS = [
+  {
+    id: 'a1',
+    label: 'Alert 1 — Early Warning',
+    condition: 'BTC closes below $57,000',
+    sub: 'Deploy 10% · -55% from ATH · Analyst consensus upper bound',
+    threshold: 57000,
+    type: 'price',
+    deploy: '10%'
+  },
+  {
+    id: 'a2',
+    label: 'Alert 2 — In The Zone',
+    condition: 'BTC closes below $50,000',
+    sub: 'Deploy 20% · -60% from ATH · Central estimate (shallower cycle)',
+    threshold: 50000,
+    type: 'price',
+    deploy: '20%'
+  },
+  {
+    id: 'a3',
+    label: 'Alert 3 — High Conviction',
+    condition: 'BTC closes below $44,000',
+    sub: 'Deploy 30% · -65% from ATH · Conservative estimate',
+    threshold: 44000,
+    type: 'price',
+    deploy: '30%'
+  },
+  {
+    id: 'a4',
+    label: 'Alert 4 — Capitulation Flush',
+    condition: '8%+ weekly drop while below $50K',
+    sub: 'Deploy 40% · Fired in last 14 days of every historical bottom',
+    threshold: null,
+    type: 'flush',
+    deploy: '40%'
+  }
+];
+
+let weekAgoPrice = null;
+const priceHistory = [];
+
+function renderAlerts(price) {
+  priceHistory.push({p: price, t: Date.now()});
+  if (priceHistory.length > 10000) priceHistory.shift();
+  // approximate 7-day ago price from history
+  const weekMs = 7 * 24 * 3600 * 1000;
+  const old = priceHistory.find(x => Date.now() - x.t >= weekMs);
+  if (old) weekAgoPrice = old.p;
+  const weeklyChange = weekAgoPrice ? ((price - weekAgoPrice) / weekAgoPrice * 100) : null;
+
+  const hDays = Math.floor((Date.now() - H4_DATE) / 86400000);
+  document.getElementById('hDayLabel').textContent = hDays;
+  document.getElementById('dphdays').textContent = hDays;
+
+  const inGate = hDays >= 650 && hDays <= 1050;
+  const gateEl = document.getElementById('gateStatus');
+  if (gateEl) { gateEl.textContent = inGate ? 'OPEN' : 'CLOSED'; gateEl.style.color = inGate ? '#3fb950' : '#f85149'; }
+
+  // timing bar: 0% = H4 day 0, 100% = H5 day ~1461
+  const cycleDays = Math.floor((new Date('2028-04-18') - H4_DATE) / 86400000);
+  const fillPct = Math.min(100, hDays / cycleDays * 100);
+  document.getElementById('timingFill').style.width = fillPct.toFixed(1) + '%';
+
+  const rows = ALERTS.map(al => {
+    let fired = false, close = false, distText = '', weeklyText = '';
+    if (al.type === 'price') {
+      fired = price <= al.threshold;
+      const dist = price - al.threshold;
+      close = !fired && dist < al.threshold * 0.10; // within 10%
+      distText = fired
+        ? 'Triggered at $' + Math.round(price).toLocaleString()
+        : '$' + Math.round(dist).toLocaleString() + ' away';
+    } else {
+      // flush alert
+      if (weeklyChange !== null) {
+        weeklyText = 'Weekly: ' + (weeklyChange >= 0 ? '+' : '') + weeklyChange.toFixed(1) + '%';
+        fired = weeklyChange <= -8 && price <= 50000;
+        close = !fired && weeklyChange <= -4 && price <= 55000;
+        distText = weeklyText;
+      } else {
+        distText = 'Weekly: tracking...';
+      }
+    }
+    const stateClass = fired ? 'ar-fired' : close ? 'ar-close' : 'ar-waiting';
+    const badgeClass = fired ? 'fired' : close ? 'close' : 'waiting';
+    const badgeText = fired ? '✓ FIRED — ENTER' : close ? '⚡ GETTING CLOSE' : '◉ WATCHING';
+    const distClass = fired ? 'fired' : close ? 'close' : '';
+    return `<div class="alert-row ${stateClass}">
+      <div class="alert-row-left">
+        <div class="ar-label">${al.label} · Deploy ${al.deploy}</div>
+        <div class="ar-condition">${al.condition}</div>
+        <div class="ar-sub">${al.sub}</div>
+      </div>
+      <div class="alert-row-right">
+        <div class="ar-dist ${distClass}">${distText}</div>
+        <div class="ar-badge ${badgeClass}">${badgeText}</div>
+      </div>
+    </div>`;
+  }).join('');
+  document.getElementById('alertRows').innerHTML = rows;
+}
+
+renderAlerts(68223);
+
+const _origApply = applyPrice;
+applyPrice = function(price, change) {
+  _origApply(price, change);
   renderLevels(price);
   updateScenario();
+  renderAlerts(price);
 };
 </script>
 </body>
