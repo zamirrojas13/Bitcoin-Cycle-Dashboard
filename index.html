@@ -8860,6 +8860,43 @@ function updateMilli(){
     `Tier 4 example:\n${exC} contracts @ $${bottom.toLocaleString()} entry\nExit @ $${(top/1000).toFixed(0)}K target\n= +$${exPnL.toLocaleString()} profit on Tier 4 alone`;
 }
 updateMilli();
+
+// ── AUTO-PATCH HISTORICAL DATA FROM BINANCE ──────────────────────────
+async function patchHistoricalData(){
+  const fmtDay=ms=>{const d=new Date(ms);return `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}-${String(d.getUTCDate()).padStart(2,'0')}`;};
+  const fmtMo =ms=>{const d=new Date(ms);return `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}`;};
+  try {
+    // Start times: 1 ms after the last entry's open
+    const daStart  = new Date(DA[DA.length-1][0]+'T00:00:00Z').getTime()+86400000;
+    const wkStart  = new Date(WK[WK.length-1][0]+'T00:00:00Z').getTime()+86400000;
+    const moParts  = MO[MO.length-1][0].split('-');
+    const moStart  = Date.UTC(+moParts[0], +moParts[1], 1); // 1st of next month
+    const [rDA,rWK,rMO] = await Promise.all([
+      fetch(`https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1d&startTime=${daStart}&limit=200`).then(r=>r.json()),
+      fetch(`https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1w&startTime=${wkStart}&limit=52`).then(r=>r.json()),
+      fetch(`https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1M&startTime=${moStart}&limit=12`).then(r=>r.json()),
+    ]);
+    if(!Array.isArray(rDA)||!Array.isArray(rWK)||!Array.isArray(rMO)) throw new Error('Unexpected Binance response');
+    let added=0;
+    rDA.forEach(k=>{const s=fmtDay(k[0]);if(s>DA[DA.length-1][0]){DA.push([s,+k[1],+k[2],+k[3],+k[4],+k[5]]);added++;}});
+    rWK.forEach(k=>{const s=fmtDay(k[0]);if(s>WK[WK.length-1][0]){WK.push([s,+k[1],+k[2],+k[3],+k[4],+k[5]]);added++;}});
+    rMO.forEach(k=>{const s=fmtMo(k[0]);if(s>MO[MO.length-1][0]){MO.push([s,+k[1],+k[2],+k[3],+k[4],+k[5]]);added++;}});
+    // Refresh main chart with current timeframe
+    if(typeof myChart!=='undefined') loadData(aData,false);
+    // Fill prediction chart nulls for months now in MO
+    const pc=Chart.getChart('predCanvas');
+    if(pc){
+      const moMap=Object.fromEntries(MO.map(r=>[r[0],r[4]]));
+      const ds=pc.data.datasets[0];let chg=false;
+      pc.data.labels.forEach((l,i)=>{if(ds.data[i]===null&&moMap[l]!==undefined){ds.data[i]=moMap[l];chg=true;}});
+      if(chg) pc.update('none');
+    }
+    console.log(`[BTC] Historical patch: +${added} rows appended (DA to ${DA[DA.length-1][0]}, WK to ${WK[WK.length-1][0]}, MO to ${MO[MO.length-1][0]})`);
+  } catch(e){
+    console.log('[BTC] Historical patch skipped:',e.message);
+  }
+}
+patchHistoricalData();
 </script>
 </body>
 </html>
