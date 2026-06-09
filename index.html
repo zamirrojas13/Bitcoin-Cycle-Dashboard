@@ -219,6 +219,15 @@ hr.sep{border:none;border-top:1px solid #21262d;margin:16px 0;}
 .sc-highlight h4{font-size:10px;color:#8b949e;text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px;}
 .sc-highlight .big-num{font-size:22px;font-weight:700;color:#3fb950;}
 .sc-highlight p{font-size:11px;color:#c9d1d9;margin-top:6px;line-height:1.6;}
+
+/* ── MAIN TABS ── */
+.main-tabs{display:flex;background:#0d1117;border-bottom:2px solid #21262d;padding:0 18px;overflow-x:auto;scrollbar-width:none;position:sticky;top:0;z-index:40;}
+.main-tabs::-webkit-scrollbar{display:none;}
+.main-tab{font-size:13px;padding:13px 22px;background:transparent;border:none;border-bottom:3px solid transparent;color:#8b949e;cursor:pointer;font-family:inherit;white-space:nowrap;transition:all .15s;margin-bottom:-2px;}
+.main-tab:hover{color:#e6edf3;background:rgba(255,255,255,.03);}
+.main-tab.active{color:#58a6ff;border-bottom-color:#58a6ff;font-weight:700;}
+.tab-panel{display:none;}
+.tab-panel.active{display:block;}
 </style>
 </head>
 <body>
@@ -245,338 +254,297 @@ hr.sep{border:none;border-top:1px solid #21262d;margin:16px 0;}
   <div class="si"><div class="sl">Alert window</div><div class="sv" style="color:#3fb950" id="gateStatus">OPEN</div></div>
 </div>
 
-<!-- ENTRY ALERT STATUS PANEL -->
-<div class="alert-panel" id="alertPanel">
-  <div class="alert-panel-title"><span class="dot"></span> Entry Alert Status — C4 Bear Bottom Monitor</div>
-  <div class="alert-panel-subtitle">Based on historical cycle analysis (4 cycles, R²=0.954). Alerts are tiered — deploy capital progressively as each fires. Currently in the timing gate: Day 650–1050 post-halving.</div>
-  <div class="alert-rows" id="alertRows">
-    <!-- Injected by JS -->
-  </div>
-  <div class="timing-bar-wrap">
-    <div class="timing-bar-title">
-      Halving Cycle Timing — Day <span id="hDayLabel">708</span> of ~900 peak window (H4: Apr 20 2024 → est. bottom: Oct 2026)
+<!-- MAIN TABS NAV -->
+<div class="main-tabs">
+  <button class="main-tab active" data-tab="chart" onclick="switchTab('chart')">&#128202; Chart</button>
+  <button class="main-tab" data-tab="alerts" onclick="switchTab('alerts')">&#128276; Alerts</button>
+  <button class="main-tab" data-tab="prediction" onclick="switchTab('prediction')">&#128302; Prediction</button>
+  <button class="main-tab" data-tab="scenarios" onclick="switchTab('scenarios')">&#128200; Scenarios</button>
+  <button class="main-tab" data-tab="history" onclick="switchTab('history')">&#128218; History</button>
+</div>
+
+<!-- TAB 1: CHART -->
+<div class="tab-panel active" id="tab-chart">
+
+  <!-- ENTRY ALERT STATUS PANEL -->
+  <div class="alert-panel" id="alertPanel">
+    <div class="alert-panel-title"><span class="dot"></span> Entry Alert Status — C4 Bear Bottom Monitor</div>
+    <div class="alert-panel-subtitle">Based on historical cycle analysis (4 cycles, R²=0.954). Alerts are tiered — deploy capital progressively as each fires. Currently in the timing gate: Day 650–1050 post-halving.</div>
+    <div class="alert-rows" id="alertRows">
+      <!-- Injected by JS -->
     </div>
-    <div class="timing-bar-outer"><div class="timing-bar-fill" id="timingFill" style="width:0%"></div></div>
-    <div class="timing-bar-labels"><span>H4 Apr 2024</span><span>Peak window: Oct 2026 (Day 900)</span><span>H5 Apr 2028</span></div>
-  </div>
-</div>
-
-<!-- TOOLBAR — 2 organised rows, no wrapping -->
-<div class="tb">
-  <!-- Row 1: Timeframe, Chart type, Scale -->
-  <div class="tb-row">
-    <span class="tl">View:</span>
-    <div class="tfg">
-      <button class="btn" onclick="setTF('daily',this)">Daily</button>
-      <button class="btn on" onclick="setTF('weekly',this)">Weekly</button>
-      <button class="btn" onclick="setTF('monthly',this)">Monthly</button>
-      <button class="btn" onclick="setTF('yearly',this)">Yearly</button>
+    <div class="timing-bar-wrap">
+      <div class="timing-bar-title">
+        Halving Cycle Timing — Day <span id="hDayLabel">708</span> of ~900 peak window (H4: Apr 20 2024 → est. bottom: Oct 2026)
+      </div>
+      <div class="timing-bar-outer"><div class="timing-bar-fill" id="timingFill" style="width:0%"></div></div>
+      <div class="timing-bar-labels"><span>H4 Apr 2024</span><span>Peak window: Oct 2026 (Day 900)</span><span>H5 Apr 2028</span></div>
     </div>
-    <div class="sep"></div>
-    <span class="tl">Chart:</span>
-    <button class="btn on" id="bCnd" onclick="setType('candle',this)">Candles</button>
-    <button class="btn" id="bLn" onclick="setType('line',this)">Line</button>
-    <div class="sep"></div>
-    <span class="tl">Scale:</span>
-    <button class="btn on" id="bLog" onclick="setScale('log')">Log</button>
-    <button class="btn" id="bLin" onclick="setScale('linear')">Linear</button>
-    <div class="sep"></div>
-    <span class="tl">Overlays:</span>
-    <button class="btn gon" id="bZ" onclick="tog('zones')">Zones &#10003;</button>
-    <button class="btn gon" id="bH" onclick="tog('halvings')">Halvings &#10003;</button>
-    <button class="btn gon" id="bV" onclick="tog('volume')">Volume &#10003;</button>
-  </div>
-  <!-- Row 2: Range, Custom years, Nav -->
-  <div class="tb-row">
-    <span class="tl">Range:</span>
-    <button class="btn" onclick="setRange('6M',this)">6M</button>
-    <button class="btn" onclick="setRange('1Y',this)">1Y</button>
-    <button class="btn" onclick="setRange('2Y',this)">2Y</button>
-    <button class="btn" onclick="setRange('4Y',this)">4Y</button>
-    <button class="btn on" id="bAll" onclick="setRange('ALL',this)">ALL</button>
-    <div class="sep"></div>
-    <span class="tl">Custom yrs:</span>
-    <input class="yr-inp" id="yrInput" type="number" min="0.5" max="16" step="0.5" placeholder="e.g. 3"/>
-    <button class="btn" onclick="applyCustomYears()">Go</button>
-    <div class="sep"></div>
-    <button class="btn" onclick="resetView()">&#10227; Reset</button>
-    <button class="btn" onclick="myChart.zoom(1.5)">Zoom +</button>
-    <button class="btn" onclick="myChart.zoom(0.67)">Zoom -</button>
-    <button class="btn" onclick="myChart.pan({x:150})">&#9664; Pan</button>
-    <button class="btn" onclick="myChart.pan({x:-150})">Pan &#9654;</button>
-  </div>
-</div>
-
-<!-- CHART -->
-<div class="cbox"><div class="cwrap"><canvas id="cv"></canvas></div>
-<div class="vol-wrap" id="volWrap"><div class="vol-label">Volume</div><canvas id="volCv"></canvas></div></div>
-
-<!-- LEGEND -->
-<div class="leg">
-  <div class="li"><div class="lsq" style="background:rgba(63,185,80,.28);border:1px solid #3fb950;"></div>Bull market</div>
-  <div class="li"><div class="lsq" style="background:rgba(248,81,73,.22);border:1px solid #f85149;"></div>Bear market</div>
-  <div class="li"><div class="lsq" style="background:#d29922;width:2px;height:14px;border-radius:1px;"></div>Halving</div>
-  <div class="li"><div class="lsq" style="background:#3fb950;height:2px;"></div>Bull candle</div>
-  <div class="li"><div class="lsq" style="background:#f85149;height:2px;"></div>Bear candle</div>
-  <div class="li"><div class="lsq" style="background:#f0e68c;width:9px;height:9px;border-radius:50%;"></div>ATH/ATL</div>
-  <div class="li"><div class="lsq" style="background:rgba(63,185,80,.55);"></div>Vol up</div>
-  <div class="li"><div class="lsq" style="background:rgba(248,81,73,.50);"></div>Vol down</div>
-  <div class="li"><div class="lsq" style="background:rgba(188,140,255,.3);border:1px dashed #bc8cff;"></div>Prediction</div>
-</div>
-<div class="upd" id="upd">Fetching live price...</div>
-
-<!-- CYCLE PROGRESS BAR -->
-<div class="cycle-progress" id="cycleProgressBar">
-  <div class="cp-title">
-    <span>&#9670; You Are Here — Cycle 4 Progress (H4: Apr 20, 2024 → H5: ~Apr 18, 2028)</span>
-    <span id="cpLabel" style="color:#f0e68c;font-weight:700;"></span>
-  </div>
-  <div class="cp-bar-wrap" id="cpBarWrap">
-    <!-- Segments injected by JS -->
-  </div>
-  <div class="cp-phases" id="cpPhases"></div>
-</div>
-
-<!-- ANALYSIS SECTION -->
-<div class="analysis">
-
-  <!-- ANALYSIS NAV -->
-  <div class="an-nav" id="anNav">
-    <button class="an-nav-btn active" onclick="scrollToSection('secPred',this)">&#9670; Prediction</button>
-    <button class="an-nav-btn" onclick="scrollToSection('secLevels',this)">&#9670; Key Levels</button>
-    <button class="an-nav-btn" onclick="scrollToSection('secAnalog',this)">&#9670; Cycle Analog</button>
-    <button class="an-nav-btn" onclick="scrollToSection('secScenario',this)">&#9670; Scenario Planner</button>
-    <button class="an-nav-btn" onclick="scrollToSection('secFact',this)">&#9670; 4-Year Cycle</button>
-    <button class="an-nav-btn" onclick="scrollToSection('secYear',this)">&#9670; Year-by-Year</button>
-    <button class="an-nav-btn" onclick="scrollToSection('secCmp',this)">&#9670; Cycle Compare</button>
-    <button class="an-nav-btn" onclick="scrollToSection('secBull',this)">&#9650; Bull Markets</button>
-    <button class="an-nav-btn" onclick="scrollToSection('secBear',this)">&#9660; Bear Markets</button>
-    <button class="an-nav-btn" onclick="scrollToSection('secHalv',this)">&#9670; Halvings</button>
-    <button class="an-nav-btn" onclick="scrollToSection('secIns',this)">&#9670; Insights</button>
   </div>
 
-  <!-- SECTION: PREDICTION -->
-  <div class="an-section" id="secPred">
-    <div class="an-section-hdr" onclick="toggleSection(this)">
-      <span class="an-section-title" style="color:#bc8cff;">&#9670; Prediction: C4 Bear Bottom + C5 Bull Run</span>
-      <span class="an-section-chevron open">&#9660;</span>
+  <!-- TOOLBAR — 2 organised rows, no wrapping -->
+  <div class="tb">
+    <!-- Row 1: Timeframe, Chart type, Scale -->
+    <div class="tb-row">
+      <span class="tl">View:</span>
+      <div class="tfg">
+        <button class="btn" onclick="setTF('daily',this)">Daily</button>
+        <button class="btn on" onclick="setTF('weekly',this)">Weekly</button>
+        <button class="btn" onclick="setTF('monthly',this)">Monthly</button>
+        <button class="btn" onclick="setTF('yearly',this)">Yearly</button>
+      </div>
+      <div class="sep"></div>
+      <span class="tl">Chart:</span>
+      <button class="btn on" id="bCnd" onclick="setType('candle',this)">Candles</button>
+      <button class="btn" id="bLn" onclick="setType('line',this)">Line</button>
+      <div class="sep"></div>
+      <span class="tl">Scale:</span>
+      <button class="btn on" id="bLog" onclick="setScale('log')">Log</button>
+      <button class="btn" id="bLin" onclick="setScale('linear')">Linear</button>
+      <div class="sep"></div>
+      <span class="tl">Overlays:</span>
+      <button class="btn gon" id="bZ" onclick="tog('zones')">Zones &#10003;</button>
+      <button class="btn gon" id="bH" onclick="tog('halvings')">Halvings &#10003;</button>
+      <button class="btn gon" id="bV" onclick="tog('volume')">Volume &#10003;</button>
     </div>
-    <div class="an-section-body">
-      <div class="an-sub">Based on averages of 3 completed cycles. <strong style="color:#f85149;">Red ellipse</strong> = projected ATL. <strong style="color:#3fb950;">Green ellipse</strong> = projected C5 ATH. <strong style="color:#d29922;">Gold line</strong> = H5.</div>
-      <div class="pred-wrap">
-        <div class="pred-chart"><canvas id="predCanvas"></canvas></div>
-        <div class="pred-meta">
-          <div class="pm"><div class="pm-lbl">C4 ATL — avg date</div><div class="pm-val" style="color:#f85149;">Oct 24, 2026</div></div>
-          <div class="pm"><div class="pm-lbl">C4 ATL date range</div><div class="pm-val" style="color:#f85149;">Oct 4 – Nov 21, 2026</div></div>
-          <div class="pm"><div class="pm-lbl">C4 ATL price range</div><div class="pm-val" style="color:#f85149;">$35,000 – $57,000</div></div>
-          <div class="pm"><div class="pm-lbl">Bear progress today</div><div class="pm-val" id="predDays" style="color:#bc8cff;">175 / ~383 days</div></div>
-          <div class="pm"><div class="pm-lbl">H5 projected date</div><div class="pm-val" style="color:#d29922;">Apr 18, 2028</div></div>
-          <div class="pm"><div class="pm-lbl">C5 ATH date range</div><div class="pm-val" style="color:#3fb950;">Apr – Oct 2029</div></div>
-          <div class="pm"><div class="pm-lbl">C5 ATH price range</div><div class="pm-val" style="color:#3fb950;">$180,000 – $350,000</div></div>
-          <div class="pm"><div class="pm-lbl">C5 ATH avg date</div><div class="pm-val" style="color:#3fb950;">Aug 24, 2029</div></div>
-        </div>
+    <!-- Row 2: Range, Custom years, Nav -->
+    <div class="tb-row">
+      <span class="tl">Range:</span>
+      <button class="btn" onclick="setRange('6M',this)">6M</button>
+      <button class="btn" onclick="setRange('1Y',this)">1Y</button>
+      <button class="btn" onclick="setRange('2Y',this)">2Y</button>
+      <button class="btn" onclick="setRange('4Y',this)">4Y</button>
+      <button class="btn on" id="bAll" onclick="setRange('ALL',this)">ALL</button>
+      <div class="sep"></div>
+      <span class="tl">Custom yrs:</span>
+      <input class="yr-inp" id="yrInput" type="number" min="0.5" max="16" step="0.5" placeholder="e.g. 3"/>
+      <button class="btn" onclick="applyCustomYears()">Go</button>
+      <div class="sep"></div>
+      <button class="btn" onclick="resetView()">&#10227; Reset</button>
+      <button class="btn" onclick="myChart.zoom(1.5)">Zoom +</button>
+      <button class="btn" onclick="myChart.zoom(0.67)">Zoom -</button>
+      <button class="btn" onclick="myChart.pan({x:150})">&#9664; Pan</button>
+      <button class="btn" onclick="myChart.pan({x:-150})">Pan &#9654;</button>
+    </div>
+  </div>
+
+  <!-- CHART -->
+  <div class="cbox"><div class="cwrap"><canvas id="cv"></canvas></div>
+  <div class="vol-wrap" id="volWrap"><div class="vol-label">Volume</div><canvas id="volCv"></canvas></div></div>
+
+  <!-- LEGEND -->
+  <div class="leg">
+    <div class="li"><div class="lsq" style="background:rgba(63,185,80,.28);border:1px solid #3fb950;"></div>Bull market</div>
+    <div class="li"><div class="lsq" style="background:rgba(248,81,73,.22);border:1px solid #f85149;"></div>Bear market</div>
+    <div class="li"><div class="lsq" style="background:#d29922;width:2px;height:14px;border-radius:1px;"></div>Halving</div>
+    <div class="li"><div class="lsq" style="background:#3fb950;height:2px;"></div>Bull candle</div>
+    <div class="li"><div class="lsq" style="background:#f85149;height:2px;"></div>Bear candle</div>
+    <div class="li"><div class="lsq" style="background:#f0e68c;width:9px;height:9px;border-radius:50%;"></div>ATH/ATL</div>
+    <div class="li"><div class="lsq" style="background:rgba(63,185,80,.55);"></div>Vol up</div>
+    <div class="li"><div class="lsq" style="background:rgba(248,81,73,.50);"></div>Vol down</div>
+    <div class="li"><div class="lsq" style="background:rgba(188,140,255,.3);border:1px dashed #bc8cff;"></div>Prediction</div>
+  </div>
+  <div class="upd" id="upd">Fetching live price...</div>
+
+  <!-- CYCLE PROGRESS BAR -->
+  <div class="cycle-progress" id="cycleProgressBar">
+    <div class="cp-title">
+      <span>&#9670; You Are Here — Cycle 4 Progress (H4: Apr 20, 2024 → H5: ~Apr 18, 2028)</span>
+      <span id="cpLabel" style="color:#f0e68c;font-weight:700;"></span>
+    </div>
+    <div class="cp-bar-wrap" id="cpBarWrap">
+      <!-- Segments injected by JS -->
+    </div>
+    <div class="cp-phases" id="cpPhases"></div>
+  </div>
+
+</div><!-- /tab-chart -->
+
+<!-- TAB 2: ALERTS -->
+<div class="tab-panel" id="tab-alerts">
+  <div class="alert-panel" style="border-bottom:none;">
+    <div class="alert-panel-title"><span class="dot"></span> Entry Alert Status — C4 Bear Bottom Monitor</div>
+    <div class="alert-panel-subtitle">Based on historical cycle analysis (4 cycles, R²=0.954). Alerts are tiered — deploy capital progressively as each fires. Currently in the timing gate: Day 650–1050 post-halving.</div>
+    <div class="alert-rows" id="alertRowsFull">
+      <!-- Injected by JS -->
+    </div>
+    <div class="timing-bar-wrap">
+      <div class="timing-bar-title">
+        Halving Cycle Timing — Day <span id="hDayLabelFull">708</span> of ~900 peak window (H4: Apr 20 2024 → est. bottom: Oct 2026)
+      </div>
+      <div class="timing-bar-outer"><div class="timing-bar-fill" id="timingFillFull" style="width:0%"></div></div>
+      <div class="timing-bar-labels"><span>H4 Apr 2024</span><span>Peak window: Oct 2026 (Day 900)</span><span>H5 Apr 2028</span></div>
+    </div>
+  </div>
+  <div style="padding:18px;font-size:11px;color:#8b949e;line-height:1.9;max-width:760px;">
+    <div style="font-size:13px;color:#e6edf3;font-weight:700;margin-bottom:10px;">How to use these alerts</div>
+    <p style="margin-bottom:10px;">Each alert fires at a different price level based on historical Bitcoin cycle analysis (4 cycles, regression R²=0.954). Deploy capital progressively — never go all-in at once.</p>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin-bottom:16px;">
+      <div style="background:#161b22;border:1px solid #21262d;border-radius:8px;padding:12px;border-left:3px solid #8b949e;">
+        <div style="font-size:10px;color:#d29922;font-weight:700;margin-bottom:4px;">ALERT 1 — $57,000</div>
+        <div style="font-size:11px;">Deploy <strong style="color:#e6edf3;">10%</strong> of your capital. This is -55% from ATH — the shallowest bottom in analyst consensus. Gets you in if the cycle doesn't drop far.</div>
+      </div>
+      <div style="background:#161b22;border:1px solid #21262d;border-radius:8px;padding:12px;border-left:3px solid #58a6ff;">
+        <div style="font-size:10px;color:#d29922;font-weight:700;margin-bottom:4px;">ALERT 2 — $50,000</div>
+        <div style="font-size:11px;">Deploy <strong style="color:#e6edf3;">20%</strong>. This is -60% from ATH — the central estimate based on diminishing cycle drawdowns.</div>
+      </div>
+      <div style="background:#161b22;border:1px solid #21262d;border-radius:8px;padding:12px;border-left:3px solid #d29922;">
+        <div style="font-size:10px;color:#d29922;font-weight:700;margin-bottom:4px;">ALERT 3 — $44,000</div>
+        <div style="font-size:11px;">Deploy <strong style="color:#e6edf3;">30%</strong>. Conservative estimate at -65% from ATH, near the historical regression projection.</div>
+      </div>
+      <div style="background:#161b22;border:1px solid #21262d;border-radius:8px;padding:12px;border-left:3px solid #f85149;">
+        <div style="font-size:10px;color:#d29922;font-weight:700;margin-bottom:4px;">ALERT 4 — FLUSH</div>
+        <div style="font-size:11px;">Deploy <strong style="color:#e6edf3;">40%</strong>. When BTC drops 8%+ in one week while below $50K — the capitulation signal. Fired in the last 14 days before every historical bottom.</div>
       </div>
     </div>
+    <p style="color:#6b7280;">Timing: We are currently in Day 650–1050 post-halving — the historical window when all 3 modern cycle bottoms formed. Day 900 (peak probability) = Oct 8, 2026.</p>
   </div>
+</div><!-- /tab-alerts -->
 
-  <!-- SECTION: KEY PRICE LEVELS -->
-  <div class="an-section" id="secLevels">
-    <div class="an-section-hdr" onclick="toggleSection(this)">
-      <span class="an-section-title" style="color:#58a6ff;">&#9670; Key Price Levels</span>
-      <span class="an-section-chevron open">&#9660;</span>
-    </div>
-    <div class="an-section-body">
-      <div class="an-sub">Critical reference levels for the current cycle. Distance updates live with price.</div>
-      <div class="levels-grid" id="levelsGrid"></div>
-      <div class="levels-ts" id="levelsTs"></div>
-    </div>
-  </div>
-
-  <!-- SECTION: CYCLE ANALOG -->
-  <div class="an-section" id="secAnalog">
-    <div class="an-section-hdr" onclick="toggleSection(this)">
-      <span class="an-section-title" style="color:#d29922;">&#9670; Cycle Analog Overlay — Bear Phase Comparison</span>
-      <span class="an-section-chevron open">&#9660;</span>
-    </div>
-    <div class="an-section-body">
-      <div class="an-sub">All bear phases normalized: ATH = 100%, x-axis = weeks since ATH. Shows where C4 sits relative to C1, C2, and C3 bears.</div>
-      <div class="analog-wrap">
-        <div class="analog-chart"><canvas id="analogCanvas"></canvas></div>
-        <div class="analog-legend">
-          <div class="ali"><div class="dot" style="background:#8b949e;"></div>C1 Bear (Jun 2011 ATH)</div>
-          <div class="ali"><div class="dot" style="background:#d29922;"></div>C2 Bear (Nov 2013 ATH)</div>
-          <div class="ali"><div class="dot" style="background:#bc8cff;"></div>C3 Bear (Dec 2017 ATH)</div>
-          <div class="ali"><div class="dot" style="background:#f85149;width:12px;height:4px;"></div>C4 Bear (Oct 2025 ATH) — CURRENT</div>
-        </div>
-        <div class="analog-note" id="analogNote"></div>
+<!-- TAB 3: PREDICTION -->
+<div class="tab-panel" id="tab-prediction">
+  <div style="padding:18px 18px 0;">
+    <div class="an-section-title" style="color:#bc8cff;font-size:12px;padding:14px 0 4px;">&#9670; Prediction: C4 Bear Bottom + C5 Bull Run</div>
+    <div class="an-sub">Based on averages of 3 completed cycles. <strong style="color:#f85149;">Red ellipse</strong> = projected ATL. <strong style="color:#3fb950;">Green ellipse</strong> = projected C5 ATH. <strong style="color:#d29922;">Gold line</strong> = H5.</div>
+    <div class="pred-wrap">
+      <div class="pred-chart"><canvas id="predCanvas"></canvas></div>
+      <div class="pred-meta">
+        <div class="pm"><div class="pm-lbl">C4 ATL — avg date</div><div class="pm-val" style="color:#f85149;">Oct 24, 2026</div></div>
+        <div class="pm"><div class="pm-lbl">C4 ATL date range</div><div class="pm-val" style="color:#f85149;">Oct 4 – Nov 21, 2026</div></div>
+        <div class="pm"><div class="pm-lbl">C4 ATL price range</div><div class="pm-val" style="color:#f85149;">$35,000 – $57,000</div></div>
+        <div class="pm"><div class="pm-lbl">Bear progress today</div><div class="pm-val" id="predDays" style="color:#bc8cff;">175 / ~383 days</div></div>
+        <div class="pm"><div class="pm-lbl">H5 projected date</div><div class="pm-val" style="color:#d29922;">Apr 18, 2028</div></div>
+        <div class="pm"><div class="pm-lbl">C5 ATH date range</div><div class="pm-val" style="color:#3fb950;">Apr – Oct 2029</div></div>
+        <div class="pm"><div class="pm-lbl">C5 ATH price range</div><div class="pm-val" style="color:#3fb950;">$180,000 – $350,000</div></div>
+        <div class="pm"><div class="pm-lbl">C5 ATH avg date</div><div class="pm-val" style="color:#3fb950;">Aug 24, 2029</div></div>
       </div>
     </div>
-  </div>
 
-  <!-- SECTION: SCENARIO PLANNER -->
-  <div class="an-section" id="secScenario">
-    <div class="an-section-hdr" onclick="toggleSection(this)">
-      <span class="an-section-title" style="color:#3fb950;">&#9670; Bear / Bull Scenario Planner</span>
-      <span class="an-section-chevron open">&#9660;</span>
+    <div class="an-section-title" style="color:#58a6ff;font-size:12px;padding:20px 0 4px;">&#9670; Key Price Levels</div>
+    <div class="an-sub">Critical reference levels for the current cycle. Distance updates live with price.</div>
+    <div class="levels-grid" id="levelsGrid"></div>
+    <div class="levels-ts" id="levelsTs"></div>
+
+    <div class="an-section-title" style="color:#d29922;font-size:12px;padding:20px 0 4px;">&#9670; Cycle Analog Overlay — Bear Phase Comparison</div>
+    <div class="an-sub">All bear phases normalized: ATH = 100%, x-axis = weeks since ATH. Shows where C4 sits relative to C1, C2, and C3 bears.</div>
+    <div class="analog-wrap">
+      <div class="analog-chart"><canvas id="analogCanvas"></canvas></div>
+      <div class="analog-legend">
+        <div class="ali"><div class="dot" style="background:#8b949e;"></div>C1 Bear (Jun 2011 ATH)</div>
+        <div class="ali"><div class="dot" style="background:#d29922;"></div>C2 Bear (Nov 2013 ATH)</div>
+        <div class="ali"><div class="dot" style="background:#bc8cff;"></div>C3 Bear (Dec 2017 ATH)</div>
+        <div class="ali"><div class="dot" style="background:#f85149;width:12px;height:4px;"></div>C4 Bear (Oct 2025 ATH) — CURRENT</div>
+      </div>
+      <div class="analog-note" id="analogNote"></div>
     </div>
-    <div class="an-section-body">
-      <div class="an-sub">Drag the sliders to model different outcomes. Portfolio value updates in real time.</div>
-      <div class="scenario-wrap">
-        <div class="scenario-grid">
-          <!-- Bear panel -->
-          <div class="sc-panel">
-            <h4 style="color:#f85149;">&#9660; Bear Scenario — Where does the bottom land?</h4>
-            <div class="sc-slider-row">
-              <label>Drawdown from ATH ($126,186): <span id="scBearPct" class="r">-75%</span></label>
-              <input type="range" class="sc-slider bear-slider" id="scBearSlider" min="40" max="90" value="62" oninput="updateScenario()">
-            </div>
-            <div class="sc-results">
-              <div class="sc-row"><span class="sck">ATH</span><span class="scv gold">$126,186</span></div>
-              <div class="sc-row"><span class="sck">Projected ATL price</span><span class="scv r" id="scBearPrice">$47,951</span></div>
-              <div class="sc-row"><span class="sck">Drop from current price</span><span class="scv r" id="scBearFromNow">—</span></div>
-              <div class="sc-row"><span class="sck">Est. bottom date</span><span class="scv pu" id="scBearDate">Oct–Nov 2026</span></div>
-              <div class="sc-row"><span class="sck">Historical analog</span><span class="scv dim" id="scBearAnalog">Between C2 (-84%) and C3 (-78%)</span></div>
-            </div>
+  </div>
+</div><!-- /tab-prediction -->
+
+<!-- TAB 4: SCENARIOS -->
+<div class="tab-panel" id="tab-scenarios">
+  <div style="padding:18px 18px 0;">
+    <div class="an-section-title" style="color:#3fb950;font-size:12px;padding:14px 0 4px;">&#9670; Bear / Bull Scenario Planner</div>
+    <div class="an-sub">Drag the sliders to model different outcomes. Portfolio value updates in real time.</div>
+    <div class="scenario-wrap">
+      <div class="scenario-grid">
+        <!-- Bear panel -->
+        <div class="sc-panel">
+          <h4 style="color:#f85149;">&#9660; Bear Scenario — Where does the bottom land?</h4>
+          <div class="sc-slider-row">
+            <label>Drawdown from ATH ($126,186): <span id="scBearPct" class="r">-75%</span></label>
+            <input type="range" class="sc-slider bear-slider" id="scBearSlider" min="40" max="90" value="62" oninput="updateScenario()">
           </div>
-          <!-- Bull panel -->
-          <div class="sc-panel">
-            <h4 style="color:#3fb950;">&#9650; Bull Scenario — Next cycle ATH</h4>
-            <div class="sc-slider-row">
-              <label>Gain from ATL: <span id="scBullPct" class="g">+500%</span></label>
-              <input type="range" class="sc-slider bull-slider" id="scBullSlider" min="100" max="1500" value="500" step="50" oninput="updateScenario()">
-            </div>
-            <div class="sc-results">
-              <div class="sc-row"><span class="sck">ATL (from bear slider)</span><span class="scv r" id="scBullBase">$31,547</span></div>
-              <div class="sc-row"><span class="sck">Projected C5 ATH</span><span class="scv g" id="scBullPrice">$189,279</span></div>
-              <div class="sc-row"><span class="sck">Gain from current price</span><span class="scv g" id="scBullFromNow">—</span></div>
-              <div class="sc-row"><span class="sck">Est. ATH date</span><span class="scv gold" id="scBullDate">~Aug 2029</span></div>
-              <div class="sc-row"><span class="sck">Halving × multiple</span><span class="scv b" id="scBullHMul">—</span></div>
-            </div>
+          <div class="sc-results">
+            <div class="sc-row"><span class="sck">ATH</span><span class="scv gold">$126,186</span></div>
+            <div class="sc-row"><span class="sck">Projected ATL price</span><span class="scv r" id="scBearPrice">$47,951</span></div>
+            <div class="sc-row"><span class="sck">Drop from current price</span><span class="scv r" id="scBearFromNow">—</span></div>
+            <div class="sc-row"><span class="sck">Est. bottom date</span><span class="scv pu" id="scBearDate">Oct–Nov 2026</span></div>
+            <div class="sc-row"><span class="sck">Historical analog</span><span class="scv dim" id="scBearAnalog">Between C2 (-84%) and C3 (-78%)</span></div>
           </div>
         </div>
-        <!-- Investment calculator -->
-        <div class="sc-invest">
-          <label>Investment amount at projected ATL: <input type="text" id="scInvest" value="10,000" oninput="updateScenario()"></label>
+        <!-- Bull panel -->
+        <div class="sc-panel">
+          <h4 style="color:#3fb950;">&#9650; Bull Scenario — Next cycle ATH</h4>
+          <div class="sc-slider-row">
+            <label>Gain from ATL: <span id="scBullPct" class="g">+500%</span></label>
+            <input type="range" class="sc-slider bull-slider" id="scBullSlider" min="100" max="1500" value="500" step="50" oninput="updateScenario()">
+          </div>
+          <div class="sc-results">
+            <div class="sc-row"><span class="sck">ATL (from bear slider)</span><span class="scv r" id="scBullBase">$31,547</span></div>
+            <div class="sc-row"><span class="sck">Projected C5 ATH</span><span class="scv g" id="scBullPrice">$189,279</span></div>
+            <div class="sc-row"><span class="sck">Gain from current price</span><span class="scv g" id="scBullFromNow">—</span></div>
+            <div class="sc-row"><span class="sck">Est. ATH date</span><span class="scv gold" id="scBullDate">~Aug 2029</span></div>
+            <div class="sc-row"><span class="sck">Halving × multiple</span><span class="scv b" id="scBullHMul">—</span></div>
+          </div>
         </div>
-        <div class="sc-highlight" id="scHighlight">
-          <h4>Portfolio Outcome</h4>
-          <div class="big-num" id="scPortfolio">$60,000</div>
-          <p id="scPortfolioDesc">—</p>
-        </div>
+      </div>
+      <!-- Investment calculator -->
+      <div class="sc-invest">
+        <label>Investment amount at projected ATL: <input type="text" id="scInvest" value="10,000" oninput="updateScenario()"></label>
+      </div>
+      <div class="sc-highlight" id="scHighlight">
+        <h4>Portfolio Outcome</h4>
+        <div class="big-num" id="scPortfolio">$60,000</div>
+        <p id="scPortfolioDesc">—</p>
       </div>
     </div>
-  </div>
 
-  <!-- SECTION: 4-YEAR CYCLE FACT -->
-  <div class="an-section" id="secFact">
-    <div class="an-section-hdr" onclick="toggleSection(this)">
-      <span class="an-section-title" style="color:#d29922;">&#9670; The 4-Year Halving Cycle — Verified</span>
-      <span class="an-section-chevron">&#9660;</span>
+    <div class="an-section-title" style="color:#d29922;font-size:12px;padding:20px 0 4px;">&#9670; The 4-Year Halving Cycle — Verified</div>
+    <div class="fact-box" style="margin-top:8px;">
+      <strong style="color:#f0f6fc;">Why cycles look uneven when measured ATL-to-ATL:</strong> The halvings themselves are nearly perfectly spaced by Bitcoin's protocol (~210,000 blocks × 10 min):<br>
+      H1&#8594;H2: <span class="gold">1,319d (3.61 yrs)</span> &nbsp;·&nbsp;
+      H2&#8594;H3: <span class="gold">1,402d (3.84 yrs)</span> &nbsp;·&nbsp;
+      H3&#8594;H4: <span class="gold">1,440d (3.94 yrs)</span> &nbsp;·&nbsp;
+      H4&#8594;H5: <span class="gold">1,459d (3.99 yrs)</span> projected<br>
+      Converging to exactly <strong style="color:#f0e68c;">4.00 years</strong>. ATL-to-ATL looks uneven because the bear bottom lands at different offsets <em>within</em> the 4-year block — not because the cycle changed.
     </div>
-    <div class="an-section-body collapsed">
-      <div class="fact-box">
-        <strong style="color:#f0f6fc;">Why cycles look uneven when measured ATL-to-ATL:</strong> The halvings themselves are nearly perfectly spaced by Bitcoin's protocol (~210,000 blocks × 10 min):<br>
-        H1&#8594;H2: <span class="gold">1,319d (3.61 yrs)</span> &nbsp;·&nbsp;
-        H2&#8594;H3: <span class="gold">1,402d (3.84 yrs)</span> &nbsp;·&nbsp;
-        H3&#8594;H4: <span class="gold">1,440d (3.94 yrs)</span> &nbsp;·&nbsp;
-        H4&#8594;H5: <span class="gold">1,459d (3.99 yrs)</span> projected<br>
-        Converging to exactly <strong style="color:#f0e68c;">4.00 years</strong>. ATL-to-ATL looks uneven because the bear bottom lands at different offsets <em>within</em> the 4-year block — not because the cycle changed.
-      </div>
-    </div>
-  </div>
 
-  <!-- SECTION: YEAR-BY-YEAR -->
-  <div class="an-section" id="secYear">
-    <div class="an-section-hdr" onclick="toggleSection(this)">
-      <span class="an-section-title" style="color:#58a6ff;">&#9670; Year-by-Year Performance Within Each Cycle</span>
-      <span class="an-section-chevron">&#9660;</span>
-    </div>
-    <div class="an-section-body collapsed">
-      <div class="ytabs">
-        <button class="ytab yon" onclick="filterYear('all',this)">All</button>
-        <button class="ytab" onclick="filterYear(1,this)">Year 1 (0–12mo)</button>
-        <button class="ytab" onclick="filterYear(2,this)">Year 2 (12–24mo)</button>
-        <button class="ytab" onclick="filterYear(3,this)">Year 3 (24–36mo)</button>
-        <button class="ytab" onclick="filterYear(4,this)">Year 4 (36–48mo)</button>
-      </div>
-      <div style="overflow-x:auto;margin-bottom:6px;">
-        <table class="ptable"><thead><tr id="yHead"></tr></thead><tbody id="yBody"></tbody></table>
-      </div>
-      <div style="font-size:10px;color:#8b949e;">Year 1 = months 0–12 after halving &nbsp;·&nbsp; ATH typically arrives Year 2 &nbsp;·&nbsp; ATL typically Year 3</div>
-    </div>
+    <div class="an-section-title" style="color:#bc8cff;font-size:12px;padding:20px 0 4px;">&#9670; Trader Pattern Insights</div>
+    <div class="an-sub">Cards marked <span style="color:#3fb950;font-size:9px;border:1px solid rgba(63,185,80,.3);padding:1px 5px;border-radius:3px;">LIVE</span> update automatically with the current price.</div>
+    <div class="ins-grid" id="insightGrid"></div>
   </div>
+</div><!-- /tab-scenarios -->
 
-  <!-- SECTION: CYCLE COMPARISON — FIX #9: 3 focused tables -->
-  <div class="an-section" id="secCmp">
-    <div class="an-section-hdr" onclick="toggleSection(this)">
-      <span class="an-section-title" style="color:#d29922;">&#9670; Cycle Comparison</span>
-      <span class="an-section-chevron">&#9660;</span>
+<!-- TAB 5: HISTORY -->
+<div class="tab-panel" id="tab-history">
+  <div style="padding:18px 18px 0;">
+    <div class="an-section-title" style="color:#58a6ff;font-size:12px;padding:14px 0 4px;">&#9670; Year-by-Year Performance Within Each Cycle</div>
+    <div class="ytabs" style="margin-top:10px;">
+      <button class="ytab yon" onclick="filterYear('all',this)">All</button>
+      <button class="ytab" onclick="filterYear(1,this)">Year 1 (0–12mo)</button>
+      <button class="ytab" onclick="filterYear(2,this)">Year 2 (12–24mo)</button>
+      <button class="ytab" onclick="filterYear(3,this)">Year 3 (24–36mo)</button>
+      <button class="ytab" onclick="filterYear(4,this)">Year 4 (36–48mo)</button>
     </div>
-    <div class="an-section-body collapsed">
-      <div class="cycle-tabs">
-        <button class="ctab con" onclick="toggleCycle(0,this)">Cycle 1 · H1 Nov 2012</button>
-        <button class="ctab con" onclick="toggleCycle(1,this)">Cycle 2 · H2 Jul 2016</button>
-        <button class="ctab con" onclick="toggleCycle(2,this)">Cycle 3 · H3 May 2020</button>
-        <button class="ctab con" onclick="toggleCycle(3,this)">Cycle 4 · H4 Apr 2024</button>
-      </div>
-      <!-- Table 1: Halving metrics -->
-      <div class="tbl-title" style="color:#d29922;">&#9670; Halving Metrics</div>
-      <div style="overflow-x:auto;margin-bottom:16px;"><table class="ptable"><thead><tr id="tHalvHead"></tr></thead><tbody id="tHalvBody"></tbody></table></div>
-      <!-- Table 2: Bull metrics -->
-      <div class="tbl-title" style="color:#3fb950;">&#9650; Bull Market Metrics</div>
-      <div style="overflow-x:auto;margin-bottom:16px;"><table class="ptable"><thead><tr id="tBullHead"></tr></thead><tbody id="tBullBody"></tbody></table></div>
-      <!-- Table 3: Bear metrics -->
-      <div class="tbl-title" style="color:#f85149;">&#9660; Bear Market Metrics</div>
-      <div style="overflow-x:auto;margin-bottom:16px;"><table class="ptable"><thead><tr id="tBearHead"></tr></thead><tbody id="tBearBody"></tbody></table></div>
+    <div style="overflow-x:auto;margin-bottom:6px;">
+      <table class="ptable"><thead><tr id="yHead"></tr></thead><tbody id="yBody"></tbody></table>
     </div>
+    <div style="font-size:10px;color:#8b949e;margin-bottom:20px;">Year 1 = months 0–12 after halving &nbsp;·&nbsp; ATH typically arrives Year 2 &nbsp;·&nbsp; ATL typically Year 3</div>
+
+    <div class="an-section-title" style="color:#d29922;font-size:12px;padding:14px 0 4px;">&#9670; Cycle Comparison</div>
+    <div class="cycle-tabs" style="margin-top:10px;">
+      <button class="ctab con" onclick="toggleCycle(0,this)">Cycle 1 · H1 Nov 2012</button>
+      <button class="ctab con" onclick="toggleCycle(1,this)">Cycle 2 · H2 Jul 2016</button>
+      <button class="ctab con" onclick="toggleCycle(2,this)">Cycle 3 · H3 May 2020</button>
+      <button class="ctab con" onclick="toggleCycle(3,this)">Cycle 4 · H4 Apr 2024</button>
+    </div>
+    <div class="tbl-title" style="color:#d29922;">&#9670; Halving Metrics</div>
+    <div style="overflow-x:auto;margin-bottom:16px;"><table class="ptable"><thead><tr id="tHalvHead"></tr></thead><tbody id="tHalvBody"></tbody></table></div>
+    <div class="tbl-title" style="color:#3fb950;">&#9650; Bull Market Metrics</div>
+    <div style="overflow-x:auto;margin-bottom:16px;"><table class="ptable"><thead><tr id="tBullHead"></tr></thead><tbody id="tBullBody"></tbody></table></div>
+    <div class="tbl-title" style="color:#f85149;">&#9660; Bear Market Metrics</div>
+    <div style="overflow-x:auto;margin-bottom:16px;"><table class="ptable"><thead><tr id="tBearHead"></tr></thead><tbody id="tBearBody"></tbody></table></div>
+
+    <div class="an-section-title" style="color:#3fb950;font-size:12px;padding:14px 0 4px;">&#9650; Bull Market Detail</div>
+    <div class="card-grid" id="bullCards"></div>
+
+    <div class="an-section-title" style="color:#f85149;font-size:12px;padding:14px 0 4px;">&#9660; Bear Market Detail</div>
+    <div class="card-grid" id="bearCards"></div>
+
+    <div class="an-section-title" style="color:#d29922;font-size:12px;padding:14px 0 4px;">&#9670; Halving Event Detail</div>
+    <div class="card-grid" id="halvCards"></div>
   </div>
-
-  <!-- SECTION: BULL CARDS -->
-  <div class="an-section" id="secBull">
-    <div class="an-section-hdr" onclick="toggleSection(this)">
-      <span class="an-section-title" style="color:#3fb950;">&#9650; Bull Market Detail</span>
-      <span class="an-section-chevron">&#9660;</span>
-    </div>
-    <div class="an-section-body collapsed">
-      <div class="card-grid" id="bullCards"></div>
-    </div>
-  </div>
-
-  <!-- SECTION: BEAR CARDS -->
-  <div class="an-section" id="secBear">
-    <div class="an-section-hdr" onclick="toggleSection(this)">
-      <span class="an-section-title" style="color:#f85149;">&#9660; Bear Market Detail</span>
-      <span class="an-section-chevron">&#9660;</span>
-    </div>
-    <div class="an-section-body collapsed">
-      <div class="card-grid" id="bearCards"></div>
-    </div>
-  </div>
-
-  <!-- SECTION: HALVING CARDS -->
-  <div class="an-section" id="secHalv">
-    <div class="an-section-hdr" onclick="toggleSection(this)">
-      <span class="an-section-title" style="color:#d29922;">&#9670; Halving Event Detail</span>
-      <span class="an-section-chevron">&#9660;</span>
-    </div>
-    <div class="an-section-body collapsed">
-      <div class="card-grid" id="halvCards"></div>
-    </div>
-  </div>
-
-  <!-- SECTION: INSIGHTS — FIX #10: dynamic cards -->
-  <div class="an-section" id="secIns">
-    <div class="an-section-hdr" onclick="toggleSection(this)">
-      <span class="an-section-title" style="color:#bc8cff;">&#9670; Trader Pattern Insights</span>
-      <span class="an-section-chevron open">&#9660;</span>
-    </div>
-    <div class="an-section-body">
-      <div class="an-sub">Cards marked <span style="color:#3fb950;font-size:9px;border:1px solid rgba(63,185,80,.3);padding:1px 5px;border-radius:3px;">LIVE</span> update automatically with the current price.</div>
-      <div class="ins-grid" id="insightGrid"></div>
-    </div>
-  </div>
-
-</div><!-- /analysis -->
+</div><!-- /tab-history -->
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/hammer.js/2.0.8/hammer.min.js"></script>
@@ -7549,6 +7517,17 @@ function resetView(){
   document.querySelectorAll('.tb-row .btn').forEach(b=>{if(['6M','1Y','2Y','4Y'].includes(b.textContent.trim()))b.classList.remove('on');if(b.textContent.trim()==='ALL')b.classList.add('on');});
 }
 
+// ── MAIN TAB SWITCHING ────────────────────────────────────────────────
+function switchTab(tabId) {
+  document.querySelectorAll('.main-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelector('[data-tab="'+tabId+'"]').classList.add('active');
+  document.getElementById('tab-'+tabId).classList.add('active');
+  if (tabId === 'chart' && typeof myChart !== 'undefined') {
+    setTimeout(() => { myChart.resize(); if(typeof volChart!=='undefined') volChart.resize(); }, 50);
+  }
+}
+
 // ── FIX #7: COLLAPSIBLE SECTIONS ─────────────────────────────────────
 function toggleSection(hdr){
   const body=hdr.nextElementSibling;
@@ -8376,6 +8355,12 @@ function renderAlerts(price) {
     </div>`;
   }).join('');
   document.getElementById('alertRows').innerHTML = rows;
+  const full = document.getElementById('alertRowsFull');
+  if (full) full.innerHTML = rows;
+  const fillFull = document.getElementById('timingFillFull');
+  if (fillFull) fillFull.style.width = fillPct.toFixed(1) + '%';
+  const hDayFull = document.getElementById('hDayLabelFull');
+  if (hDayFull) hDayFull.textContent = hDays;
 }
 
 renderAlerts(68223);
