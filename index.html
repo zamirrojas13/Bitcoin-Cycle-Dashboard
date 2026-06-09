@@ -8746,8 +8746,10 @@ function updateMilli(){
     const g5ok = effLiqDist>GAP5?'gp-green':(effLiqDist>GAP3?'gp-yellow':'gp-red');
     const g3lbl= effLiqDist>GAP3?'SAFE':'DANGER';
     const g5lbl= effLiqDist>GAP5?'SAFE':(effLiqDist>GAP3?'RISKY':'DANGER');
-    if(g3ok==='gp-red') worstGapStatus='red';
-    else if(g5ok!=='gp-green'&&worstGapStatus==='green') worstGapStatus='yellow';
+    if(contracts>0){
+      if(g3ok==='gp-red') worstGapStatus='red';
+      else if(g5ok!=='gp-green'&&worstGapStatus==='green') worstGapStatus='yellow';
+    }
     const distColor=effLiqDist>GAP5?'#3fb950':effLiqDist>GAP3?'#d29922':'#f85149';
     const resNote=reserve>0?` <span style="font-size:9px;color:#6b7280;">(+$${Math.round(resShare/(contracts*0.01||1)).toLocaleString()} from reserve)</span>`:'';
     marginHTML+=`<tr>
@@ -8775,15 +8777,20 @@ function updateMilli(){
     yellow:`<strong>Moderate risk at ${lev}×.</strong> Positions survive a typical $3K gap but a $5K+ weekend opening reaches your maintenance floor.${resNote2} Recommended: increase reserve or reduce to ≤${safeG5}× before weekends.`,
     green:`<strong>Margin healthy at ${lev}×.</strong> All tiers survive a $5K+ adverse move before hitting maintenance.${resNote2} Still reduce size or leverage before weekends as a precaution.`
   };
-  document.getElementById('milliBanner').innerHTML=
-    `<div class="margin-risk-banner ${bannerClass}"><span class="mrb-icon">${bannerIcon}</span><span>${bannerMsg[worstGapStatus]}</span></div>`;
-
-  // Recommendation cards
-  document.getElementById('milliMarginRec').innerHTML=`
-    <div class="margin-rec-card"><div class="mrc-lbl">Your leverage</div><div class="mrc-val" style="color:${worstGapStatus==='red'?'#f85149':worstGapStatus==='yellow'?'#d29922':'#3fb950'}">${lev}&times;</div><div class="mrc-sub">Selected above</div></div>
-    <div class="margin-rec-card"><div class="mrc-lbl">Safe for $3K gap</div><div class="mrc-val" style="color:#d29922;">&le;${safeGlobal}&times;</div><div class="mrc-sub">Survives typical weekend gap</div></div>
-    <div class="margin-rec-card"><div class="mrc-lbl">Safe for $5K gap</div><div class="mrc-val" style="color:#3fb950;">&le;${safeG5}&times;</div><div class="mrc-sub">Survives large gap event</div></div>
-    <div class="margin-rec-card"><div class="mrc-lbl">Worst-case weekend rule</div><div class="mrc-val" style="color:#bc8cff;">Fri 4PM</div><div class="mrc-sub">Reduce or close before halt</div></div>`;
+  if(totalContracts===0){
+    document.getElementById('milliBanner').innerHTML=
+      `<div class="margin-risk-banner mrb-green"><span class="mrb-icon">&#128161;</span><span><strong>No positions deployed.</strong> Your full $${capital.toLocaleString()} is sitting as reserve — no liquidation risk. ${deployable===0?'Reserve equals total capital. Lower the reserve or increase capital to activate the entry plan.':''}</span></div>`;
+    document.getElementById('milliMarginRec').innerHTML=
+      `<div class="margin-rec-card" style="grid-column:1/-1;text-align:center;color:#6b7280;">Enter capital above your reserve to see risk recommendations.</div>`;
+  } else {
+    document.getElementById('milliBanner').innerHTML=
+      `<div class="margin-risk-banner ${bannerClass}"><span class="mrb-icon">${bannerIcon}</span><span>${bannerMsg[worstGapStatus]}</span></div>`;
+    document.getElementById('milliMarginRec').innerHTML=`
+      <div class="margin-rec-card"><div class="mrc-lbl">Your leverage</div><div class="mrc-val" style="color:${worstGapStatus==='red'?'#f85149':worstGapStatus==='yellow'?'#d29922':'#3fb950'}">${lev}&times;</div><div class="mrc-sub">Selected above</div></div>
+      <div class="margin-rec-card"><div class="mrc-lbl">Safe for $3K gap</div><div class="mrc-val" style="color:#d29922;">&le;${safeGlobal}&times;</div><div class="mrc-sub">Survives typical weekend gap</div></div>
+      <div class="margin-rec-card"><div class="mrc-lbl">Safe for $5K gap</div><div class="mrc-val" style="color:#3fb950;">&le;${safeG5}&times;</div><div class="mrc-sub">Survives large gap event</div></div>
+      <div class="margin-rec-card"><div class="mrc-lbl">Worst-case weekend rule</div><div class="mrc-val" style="color:#bc8cff;">Fri 4PM</div><div class="mrc-sub">Reduce or close before halt</div></div>`;
+  }
 
   document.getElementById('milliAvgEntry').textContent   = '$'+Math.round(avgEntry).toLocaleString();
   document.getElementById('milliTotalBTC').textContent   = totalBTC.toFixed(2)+' BTC';
@@ -8806,6 +8813,12 @@ function updateMilli(){
   // Account-level liquidation analysis box
   const liqNR  = acctLiqNoRes>0?'$'+Math.round(acctLiqNoRes).toLocaleString():'< $0 (safe)';
   const liqWR  = acctLiqWRes>0?'$'+Math.round(acctLiqWRes).toLocaleString():'Cannot be liquidated';
+  if(totalBTC===0){
+    document.getElementById('milliAcctLiq').innerHTML=`
+      <div class="acct-liq-ttl">&#128202; Account-level liquidation — all 4 tiers open simultaneously</div>
+      <div style="padding:14px 0 4px;text-align:center;color:#6b7280;font-size:12px;">No positions deployed — your $${capital.toLocaleString()} is fully in reserve. Lower the reserve to allocate capital to tiers.</div>`;
+    return;
+  }
   const liqWRColor = acctLiqWRes<=0?'#3fb950':(acctLiqWRes<acctLiqNoRes*0.9?'#d29922':'#f85149');
   const extraBuf = reserve>0&&acctLiqWRes>0?'$'+Math.round(moveWRes-moveNoRes).toLocaleString()+' extra buffer':reserve>0?'Full protection added':'Set reserve above to see impact';
   document.getElementById('milliAcctLiq').innerHTML=`
