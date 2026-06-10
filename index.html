@@ -810,10 +810,8 @@ hr.sep{border:none;border-top:1px solid #21262d;margin:16px 0;}
     <div style="overflow-x:auto;border-radius:8px;border:1px solid #21262d;margin-bottom:12px;">
       <table class="margin-tier-table">
         <thead><tr>
-          <th>Tier</th><th>Entry</th><th>Initial margin</th>
-          <th>Maint. floor</th><th>Liq. price</th>
-          <th>Liq. distance (eff.)</th><th>$3K gap</th><th>$5K gap</th>
-          <th>Safe max lev.</th>
+          <th>Tier</th><th>Entry</th><th>Margin used</th>
+          <th>Liq. price</th><th>Buffer to liq.</th><th>Status</th>
         </tr></thead>
         <tbody id="milliMarginRows"><!-- JS --></tbody>
       </table>
@@ -8725,23 +8723,29 @@ function updateMilli(){
   let tierHTML='';
 
   TIERS.forEach(t=>{
+    // Apply custom price override if set
+    const tPrice     = (window.milliCustomPrices&&window.milliCustomPrices[t.n])||t.price;
     const alloc      = deployable*t.pct/100;
     const notional   = alloc*lev;
-    const contracts  = Math.max(0,Math.floor(notional/(t.price*0.01)));
+    const autoContracts = Math.max(0,Math.floor(notional/(tPrice*0.01)));
+    const contracts  = (window.milliCustomContracts&&window.milliCustomContracts[t.n]!==undefined)
+                        ? window.milliCustomContracts[t.n] : autoContracts;
     const btcExp     = contracts*0.01;
-    const marginReq  = contracts*t.price*0.01/lev;
-    const pnl        = (top-t.price)*0.01*contracts;
-    const dist       = price-t.price;
-    const status     = t.price>=price?'fired':(dist<6000?'close':'waiting');
+    const marginReq  = contracts*tPrice*0.01/lev;
+    const pnl        = (top-tPrice)*0.01*contracts;
+    const dist       = price-tPrice;
+    const status     = tPrice>=price?'fired':(dist<6000?'close':'waiting');
     // Store for growth chart
-    t.contracts = contracts; t.entryPrice = t.price;
-    const statusLbl  = t.price>=price?'&#10003; FIRED':(status==='close'?'CLOSE':'WAITING');
+    t.contracts = contracts; t.entryPrice = tPrice; t.price = tPrice;
+    const statusLbl  = tPrice>=price?'&#10003; FIRED':(status==='close'?'CLOSE':'WAITING');
+    const isCustomP  = window.milliCustomPrices&&window.milliCustomPrices[t.n];
+    const isCustomC  = window.milliCustomContracts&&window.milliCustomContracts[t.n]!==undefined;
 
     totalMargin   += marginReq;
     totalBTC      += btcExp;
     totalContracts+= contracts;
     totalPnL      += pnl;
-    weightedEntry += btcExp*t.price;
+    weightedEntry += btcExp*tPrice;
 
     tierHTML+=`
     <div class="milli-tier-card mtc-${status}">
@@ -8749,11 +8753,24 @@ function updateMilli(){
         <div><div class="mtc-num">Tier ${t.n} &middot; ${t.pct}% of capital ($${Math.round(capital).toLocaleString()})</div><div class="mtc-label">${t.label}</div></div>
         <div class="mtc-badge mtb-${status}">${statusLbl}</div>
       </div>
-      <div class="mtc-price">$${t.price.toLocaleString()}</div>
+      <div class="mtc-price-wrap" style="display:flex;align-items:center;gap:4px;margin:8px 0 4px;">
+        <span style="font-size:22px;color:#e6edf3;font-weight:700;">$</span>
+        <input type="number" class="mtc-price-input" value="${tPrice}"
+          style="font-size:22px;font-weight:700;color:#e6edf3;background:transparent;border:none;border-bottom:1px solid ${isCustomP?'#58a6ff':'rgba(139,148,158,0.2)'};width:110px;outline:none;padding:2px 0;"
+          oninput="window.milliSetCustomPrice(${t.n},this.value)"
+          title="Override entry price for Tier ${t.n}">
+        ${isCustomP?'<span style="font-size:10px;color:#58a6ff;cursor:pointer;" onclick="delete window.milliCustomPrices['+t.n+'];updateMilli()">✕ reset</span>':''}
+      </div>
       <div class="mtc-rows">
         <div class="mtc-row"><span class="mtc-rk">Capital allocated</span><span class="mtc-rv">$${Math.round(alloc).toLocaleString()}</span></div>
         <div class="mtc-row"><span class="mtc-rk">Buying power (${lev}&times;)</span><span class="mtc-rv">$${Math.round(notional).toLocaleString()}</span></div>
-        <div class="mtc-row"><span class="mtc-rk">BIT contracts</span><span class="mtc-rv">${contracts.toLocaleString()}</span></div>
+        <div class="mtc-row"><span class="mtc-rk">BIT contracts</span><span class="mtc-rv" style="display:flex;align-items:center;gap:6px;">
+          <input type="number" min="0" step="1" value="${contracts}"
+            style="width:60px;background:transparent;border:none;border-bottom:1px solid ${isCustomC?'#58a6ff':'rgba(139,148,158,0.2)'};color:${isCustomC?'#58a6ff':'#e6edf3'};font-size:13px;font-weight:600;outline:none;text-align:right;padding:0 2px;"
+            oninput="window.milliSetCustomContracts(${t.n},this.value)"
+            title="Override contracts for Tier ${t.n}">
+          ${isCustomC?'<span style="font-size:10px;color:#58a6ff;cursor:pointer;" onclick="delete window.milliCustomContracts['+t.n+'];updateMilli()">✕</span>':'<span style="font-size:10px;color:#6b7280;">auto</span>'}
+        </span></div>
         <div class="mtc-row"><span class="mtc-rk">BTC exposure</span><span class="mtc-rv">${btcExp.toFixed(2)} BTC</span></div>
         <div class="mtc-row"><span class="mtc-rk">Margin required</span><span class="mtc-rv">~$${Math.round(marginReq).toLocaleString()}</span></div>
         <div class="mtc-row mtc-profit"><span class="mtc-rk">Profit at $${(top/1000).toFixed(0)}K target</span><span class="mtc-rv">+$${Math.round(pnl).toLocaleString()}</span></div>
@@ -8800,26 +8817,21 @@ function updateMilli(){
     const effLiqDist = liqDist+(contracts*0.01>0?resShare/(contracts*0.01):0);
     const effLiqPx   = ep-effLiqDist;
     const safeMaxLev = Math.floor(ep/(2*GAP3));
-    const g3ok = effLiqDist>GAP3?'gp-green':'gp-red';
-    const g5ok = effLiqDist>GAP5?'gp-green':(effLiqDist>GAP3?'gp-yellow':'gp-red');
-    const g3lbl= effLiqDist>GAP3?'SAFE':'DANGER';
-    const g5lbl= effLiqDist>GAP5?'SAFE':(effLiqDist>GAP3?'RISKY':'DANGER');
     if(contracts>0){
-      if(g3ok==='gp-red') worstGapStatus='red';
-      else if(g5ok!=='gp-green'&&worstGapStatus==='green') worstGapStatus='yellow';
+      if(effLiqDist<=GAP3) worstGapStatus='red';
+      else if(effLiqDist<=GAP5&&worstGapStatus==='green') worstGapStatus='yellow';
     }
     const distColor=effLiqDist>GAP5?'#3fb950':effLiqDist>GAP3?'#d29922':'#f85149';
-    const resNote=reserve>0?` <span style="font-size:9px;color:#6b7280;">(+$${Math.round(resShare/(contracts*0.01||1)).toLocaleString()} from reserve)</span>`:'';
+    const statusLbl2=effLiqDist>GAP5?'SAFE':effLiqDist>GAP3?'CAUTION':'DANGER';
+    const statusCls=effLiqDist>GAP5?'gp-green':effLiqDist>GAP3?'gp-yellow':'gp-red';
+    const resNote=reserve>0?` <span style="font-size:9px;color:#6b7280;">(+$${Math.round(resShare/(contracts*0.01||1)).toLocaleString()} reserve)</span>`:'';
     marginHTML+=`<tr>
-      <td class="mt-tier">T${t.n} ${t.price<bottom&&t.n===4?'(flush)':''}</td>
+      <td class="mt-tier">T${t.n}</td>
       <td>$${ep.toLocaleString()}</td>
       <td>$${Math.round(initMgn).toLocaleString()}</td>
-      <td>$${Math.round(maintMgn).toLocaleString()}</td>
       <td style="color:#f85149;">$${Math.round(effLiqPx).toLocaleString()}</td>
       <td style="color:${distColor}">$${Math.round(effLiqDist).toLocaleString()}${resNote}</td>
-      <td><span class="gap-pill ${g3ok}">${g3lbl}</span></td>
-      <td><span class="gap-pill ${g5ok}">${g5lbl}</span></td>
-      <td style="color:#58a6ff;">${safeMaxLev}&times;</td>
+      <td><span class="gap-pill ${statusCls}">${statusLbl2}</span></td>
     </tr>`;
   });
   document.getElementById('milliMarginRows').innerHTML=marginHTML;
@@ -9423,7 +9435,7 @@ function updateMilli(){
           xA:{
             type:'linear',
             min:0,
-            max:totalDays,
+            max:183,
             ticks:{
               color:'#8b949e',maxTicksLimit:11,font:{size:9,family:"'JetBrains Mono',monospace"},
               callback:v=>{
@@ -9459,12 +9471,29 @@ function updateMilli(){
       <button class="mct-btn mct-bull" onclick="window.toggleMilliLine(3,this)">🚀 Bull Case ($380K)</button>`;
     const zoomEl=document.getElementById('milliChartZoom');
     if(zoomEl) zoomEl.innerHTML=`
-      <button class="mct-btn" onclick="window.milliZoom(183,this)">6M</button>
+      <button class="mct-btn mcz-active" onclick="window.milliZoom(183,this)">6M</button>
       <button class="mct-btn" onclick="window.milliZoom(365,this)">1Y</button>
       <button class="mct-btn" onclick="window.milliZoom(730,this)">2Y</button>
-      <button class="mct-btn mcz-active" onclick="window.milliZoom(${totalDays},this)">ALL</button>`;
+      <button class="mct-btn" onclick="window.milliZoom(${totalDays},this)">ALL</button>`;
   })();
 }
+window.milliCustomPrices    = window.milliCustomPrices    || {};
+window.milliCustomContracts = window.milliCustomContracts || {};
+window.milliSetCustomPrice = function(n,val){
+  const v=parseFloat(val);
+  if(v>0) window.milliCustomPrices[n]=v; else delete window.milliCustomPrices[n];
+  updateMilli();
+};
+window.milliSetCustomContracts = function(n,val){
+  const v=parseInt(val);
+  if(!isNaN(v)&&v>=0) window.milliCustomContracts[n]=v; else delete window.milliCustomContracts[n];
+  updateMilli();
+};
+window.milliResetCustom = function(){
+  window.milliCustomPrices={};
+  window.milliCustomContracts={};
+  updateMilli();
+};
 updateMilli();
 
 window.toggleMilliLine=function(dsIdx,btn){
