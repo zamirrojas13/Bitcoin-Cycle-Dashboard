@@ -9427,8 +9427,13 @@ function updateMilli(){
           },
           yR:{
             type:'linear',position:'right',
-            // Ensure LIQ price is always visible — set min 25% below LIQ price
-            min: liqPx>500 ? Math.floor(liqPx*0.75/5000)*5000 : undefined,
+            // afterFit ensures LIQ price stays visible even after zoom recalculates the axis
+            afterFit(scale){
+              if(liqPx>500){
+                const minNeeded=Math.floor(liqPx*0.75/5000)*5000;
+                if(scale.min>minNeeded) scale.min=minNeeded;
+              }
+            },
             title:{display:true,text:'BTC Price',color:'#6b7280',font:{size:10,family:"'JetBrains Mono',monospace"}},
             ticks:{color:'#6b7280',callback:v=>'$'+Math.round(v/1000)+'K',maxTicksLimit:6,font:{size:9}},
             grid:{display:false}
