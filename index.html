@@ -259,6 +259,9 @@ hr.sep{border:none;border-top:1px solid #21262d;margin:16px 0;}
 .mct-active{border-color:#58a6ff!important;color:#e6edf3!important;background:rgba(88,166,255,0.08)!important;}
 .mct-bear.mct-active{border-color:#f85149!important;color:#f85149!important;background:rgba(248,81,73,0.07)!important;}
 .mct-bull.mct-active{border-color:#3fb950!important;color:#3fb950!important;background:rgba(63,185,80,0.07)!important;}
+.milli-chart-zoom{display:flex;gap:5px;margin-bottom:6px;align-items:center;}
+.milli-chart-zoom::before{content:'ZOOM';font-size:9px;color:#4b5563;font-family:'JetBrains Mono',monospace;letter-spacing:.08em;margin-right:3px;}
+.mcz-active{border-color:#58a6ff!important;color:#e6edf3!important;background:rgba(88,166,255,0.08)!important;}
 .milli-phase-legend{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;justify-content:center;padding-top:8px;border-top:1px solid #21262d;}
 .mpl-item{display:flex;align-items:center;gap:5px;font-size:9px;color:#8b949e;font-family:'JetBrains Mono',monospace;letter-spacing:.03em;}
 .mpl-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
@@ -784,6 +787,7 @@ hr.sep{border:none;border-top:1px solid #21262d;margin:16px 0;}
     <div class="milli-gc-wrap">
       <div class="milli-gc-stat-row" id="milliGcStats"><!-- JS --></div>
       <div class="milli-chart-toggle" id="milliChartToggle"><!-- JS --></div>
+      <div class="milli-chart-zoom" id="milliChartZoom"><!-- JS --></div>
       <canvas id="milliGrowthCanvas" style="max-height:440px;"></canvas>
       <div class="milli-phase-legend" id="milliPhaseLegend"><!-- JS --></div>
     </div>
@@ -9225,27 +9229,35 @@ function updateMilli(){
             ctx.beginPath();ctx.roundRect(px2-tw-10,py2-9,tw+14,14,4);ctx.stroke();
             ctx.fillStyle='#f85149';ctx.textAlign='right';
             ctx.fillText(lbl,px2,py2+2);
+            // Left-side label
+            ctx.save();
+            ctx.font='bold 9px monospace';
+            const lblL='LIQ';const twL=ctx.measureText(lblL).width;
+            ctx.fillStyle='rgba(248,81,73,0.15)';
+            ctx.beginPath();ctx.roundRect(ca.left+3,py2-9,twL+10,14,4);ctx.fill();
+            ctx.strokeStyle='rgba(248,81,73,0.4)';ctx.lineWidth=1;
+            ctx.beginPath();ctx.roundRect(ca.left+3,py2-9,twL+10,14,4);ctx.stroke();
+            ctx.fillStyle='rgba(248,81,73,0.9)';ctx.textAlign='left';
+            ctx.fillText(lblL,ca.left+8,py2+2);
             ctx.restore();
           }
         }
 
-        // Tier entry vertical lines (find first crossing on the way down)
-        let tOffset=14;
+        // Tier entry vertical lines — stagger labels to reduce overlap
         const sortedTiers=[...TIERS].filter(t=>t.contracts>0).sort((a,b)=>b.price-a.price);
-        sortedTiers.forEach(t=>{
+        sortedTiers.forEach((t,tidx)=>{
           for(let k=0;k<btcArr.length;k++){
             if(btcArr[k]<=t.price){
-              // tsArr[k] is already days — draw directly without msToDay conversion
               const px=xA.getPixelForValue(tsArr[k]);
               if(px>=ca.left&&px<=ca.right){
                 ctx.save();
-                ctx.strokeStyle='rgba(88,166,255,0.55)'; ctx.setLineDash([3,4]); ctx.lineWidth=1.5;
+                ctx.strokeStyle='rgba(88,166,255,0.4)'; ctx.setLineDash([3,4]); ctx.lineWidth=1;
                 ctx.beginPath(); ctx.moveTo(px,ca.top); ctx.lineTo(px,ca.bottom); ctx.stroke();
-                ctx.fillStyle='rgba(88,166,255,0.75)'; ctx.font='bold 9px monospace';
+                const lblY=ca.top+(tidx%2===0?13:24);
+                ctx.fillStyle='rgba(88,166,255,0.8)'; ctx.font='bold 9px monospace';
                 ctx.textAlign='center'; ctx.setLineDash([]);
-                ctx.fillText('T'+t.n,px,ca.top+tOffset);
+                ctx.fillText('T'+t.n,px,lblY);
                 ctx.restore();
-                tOffset+=11;
               }
               break;
             }
@@ -9356,15 +9368,25 @@ function updateMilli(){
                 const P=btcArr[i];
                 const ms2=nowMs+items[0].parsed.x*86400000;
                 const lines=['─────────────────────────'];
-                // Use running-min to determine which tiers were entered by this point
                 const rm=runMinArr[i]||P;
                 const active=TIERS.filter(t=>t.contracts>0&&rm<=t.price);
                 if(active.length){
-                  active.forEach(t=>{
-                    const tpnl=Math.round(t.contracts*0.01*(P-t.price));
-                    const ps=tpnl>=0?'+':'-';
-                    lines.push(`T${t.n} @$${Math.round(t.price/1000)}K  →  ${ps}$${Math.abs(tpnl).toLocaleString()}`);
-                  });
+                  // Consolidated position block
+                  let totC=0,wEntry=0,totPnL=0;
+                  active.forEach(t=>{ totC+=t.contracts; wEntry+=t.contracts*t.price; totPnL+=t.contracts*0.01*(P-t.price); });
+                  const avgEntry=Math.round(wEntry/totC);
+                  const totBTC=+(totC*0.01).toFixed(2);
+                  const ps2=totPnL>=0?'+':'-';
+                  lines.push(`📊 ${totBTC} BTC  ·  avg $${(avgEntry/1000).toFixed(1)}K`);
+                  lines.push(`   BTC now  $${(P/1000).toFixed(1)}K  ·  ${totC} contracts`);
+                  lines.push(`   ${ps2}$${Math.abs(Math.round(totPnL)).toLocaleString()} unrealized`);
+                  // LIQ distance
+                  if(liqPx>500){
+                    const dist=Math.round(P-liqPx);
+                    const distSign=dist>=0?'+':'-';
+                    const safe=dist>=0?'✅':'☠';
+                    lines.push(`   ${safe} $${Math.abs(dist).toLocaleString()} ${dist>=0?'above':'below'} liq ($${Math.round(liqPx/1000)}K)`);
+                  }
                 } else {
                   lines.push('No positions open yet');
                 }
@@ -9416,6 +9438,12 @@ function updateMilli(){
       <button class="mct-btn mct-active" onclick="window.toggleMilliLine(1,this)">👻 BTC Path</button>
       <button class="mct-btn mct-bear" onclick="window.toggleMilliLine(2,this)">📉 Bear Case ($155K)</button>
       <button class="mct-btn mct-bull" onclick="window.toggleMilliLine(3,this)">🚀 Bull Case ($380K)</button>`;
+    const zoomEl=document.getElementById('milliChartZoom');
+    if(zoomEl) zoomEl.innerHTML=`
+      <button class="mct-btn" onclick="window.milliZoom(183,this)">6M</button>
+      <button class="mct-btn" onclick="window.milliZoom(365,this)">1Y</button>
+      <button class="mct-btn" onclick="window.milliZoom(730,this)">2Y</button>
+      <button class="mct-btn mcz-active" onclick="window.milliZoom(${totalDays},this)">ALL</button>`;
   })();
 }
 updateMilli();
@@ -9428,6 +9456,15 @@ window.toggleMilliLine=function(dsIdx,btn){
   ds.hidden=!ds.hidden;
   chart.update('none');
   btn.classList.toggle('mct-active');
+};
+window.milliZoom=function(days,btn){
+  const chart=Chart.getChart('milliGrowthCanvas');
+  if(!chart) return;
+  chart.options.scales.xA.min=0;
+  chart.options.scales.xA.max=days;
+  chart.update('none');
+  document.querySelectorAll('#milliChartZoom .mct-btn').forEach(b=>b.classList.remove('mcz-active'));
+  btn.classList.add('mcz-active');
 };
 
 // ── AUTO-PATCH HISTORICAL DATA FROM BINANCE ──────────────────────────
