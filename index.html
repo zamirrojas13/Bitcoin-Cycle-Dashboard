@@ -236,8 +236,8 @@ hr.sep{border:none;border-top:1px solid #21262d;margin:16px 0;}
 .mic-input-wrap input{flex:1;background:transparent;border:none;outline:none;font-size:16px;color:#e6edf3;font-family:'JetBrains Mono',monospace;font-weight:600;min-width:0;}
 .mic-hint{font-size:11px;color:#6b7280;line-height:1.5;}
 .lev-btn-group{display:flex;gap:6px;margin-bottom:6px;}
-.lev-btn{flex:1;background:#161b22;border:1px solid #30363d;border-radius:6px;color:#8b949e;font-size:16px;font-weight:700;font-family:'JetBrains Mono',monospace;padding:8px 0;cursor:pointer;transition:all .15s;}
-.lev-btn:hover{border-color:#58a6ff;color:#e6edf3;}
+.lev-btn,.tiers-btn{flex:1;background:#161b22;border:1px solid #30363d;border-radius:6px;color:#8b949e;font-size:16px;font-weight:700;font-family:'JetBrains Mono',monospace;padding:8px 0;cursor:pointer;transition:all .15s;}
+.lev-btn:hover,.tiers-btn:hover{border-color:#58a6ff;color:#e6edf3;}
 .lev-active{border-color:#3fb950!important;color:#3fb950!important;background:rgba(63,185,80,.08)!important;}
 .acct-liq-box{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 16px;margin-bottom:14px;}
 .acct-liq-ttl{font-size:10px;color:#8b949e;text-transform:uppercase;letter-spacing:.06em;font-weight:600;margin-bottom:10px;}
@@ -686,6 +686,17 @@ hr.sep{border:none;border-top:1px solid #21262d;margin:16px 0;}
         <div class="mic-hint" id="milliCapHint">Split across 4 tiered entries below</div>
       </div>
       <div class="milli-input-card">
+        <label class="mic-label">Number of buys</label>
+        <div class="lev-btn-group">
+          <button class="tiers-btn" onclick="setMilliTiers(1,this)">1</button>
+          <button class="tiers-btn" onclick="setMilliTiers(2,this)">2</button>
+          <button class="tiers-btn" onclick="setMilliTiers(3,this)">3</button>
+          <button class="tiers-btn lev-active" onclick="setMilliTiers(4,this)">4</button>
+        </div>
+        <input type="hidden" id="milliTiers" value="4">
+        <div class="mic-hint" id="milliTiersHint">Uses deepest N entries · highest conviction first</div>
+      </div>
+      <div class="milli-input-card">
         <label class="mic-label" for="milliBottom">Expected bottom price</label>
         <div class="mic-input-wrap"><span class="mic-prefix">$</span><input type="number" id="milliBottom" value="47000" min="10000" step="1000" oninput="updateMilli()"></div>
         <div class="mic-hint">Regression: ~$35K · Consensus: $44K–$57K</div>
@@ -713,7 +724,7 @@ hr.sep{border:none;border-top:1px solid #21262d;margin:16px 0;}
     </div>
 
     <!-- TIERED ENTRY PLAN -->
-    <div class="milli-section-hdr">&#128203; Tiered Entry Plan — Deploy Capital Progressively</div>
+    <div class="milli-section-hdr" id="milliPlanHdr">&#128203; Tiered Entry Plan — Deploy Capital Progressively</div>
     <div class="milli-tier-grid" id="milliTierGrid"><!-- JS --></div>
 
     <!-- PORTFOLIO PROJECTION -->
@@ -8647,6 +8658,12 @@ function setMilliLev(v,btn){
   btn.classList.add('lev-active');
   updateMilli();
 }
+function setMilliTiers(n,btn){
+  document.getElementById('milliTiers').value=n;
+  document.querySelectorAll('.tiers-btn').forEach(b=>b.classList.remove('lev-active'));
+  btn.classList.add('lev-active');
+  updateMilli();
+}
 
 function updateMilli(){
   const capital    = parseFloat(document.getElementById('milliCapital').value)||10000;
@@ -8657,13 +8674,24 @@ function updateMilli(){
   const lev        = Math.max(1,parseFloat(document.getElementById('milliLev').value)||10);
   const price      = typeof livePrice!=='undefined'?livePrice:61770;
 
-  // ── TIERS ─────────────────────────────────────────────────────────
-  const TIERS=[
+  const tierCount = Math.max(1,Math.min(4,parseInt(document.getElementById('milliTiers')?.value)||4));
+
+  // ── TIERS — full pool, then select last N (highest conviction) ─────
+  const TIER_POOL=[
     {n:1,label:'Alert 1 — Early Warning',  price:57000, pct:10, note:'-55% from ATH · Analyst consensus upper bound'},
     {n:2,label:'Alert 2 — In the Zone',    price:50000, pct:20, note:'-60% from ATH · Central maturity-adjusted estimate'},
     {n:3,label:'Alert 3 — High Conviction',price:44000, pct:30, note:'-65% from ATH · Conservative historical analog'},
     {n:4,label:'Alert 4 — Capitulation',   price:bottom,pct:40, note:'8%+ weekly flush below $50K · Deploy final 40%'},
   ];
+  // Slice last tierCount entries (highest conviction) and normalize pcts to 100%
+  const rawTiers = TIER_POOL.slice(4-tierCount);
+  const totalRawPct = rawTiers.reduce((s,t)=>s+t.pct,0);
+  let pctRemaining=100;
+  const TIERS = rawTiers.map((t,i)=>{
+    const pctNorm = i===rawTiers.length-1 ? pctRemaining : Math.round(t.pct/totalRawPct*100);
+    pctRemaining -= (i===rawTiers.length-1?0:pctNorm);
+    return {...t, pct:pctNorm};
+  });
 
   let totalMargin=0,totalBTC=0,totalContracts=0,totalPnL=0,weightedEntry=0;
   let tierHTML='';
@@ -8801,9 +8829,17 @@ function updateMilli(){
   document.getElementById('milliAtTarget').textContent   = '$'+Math.round(portfolio).toLocaleString();
   document.getElementById('milliProfit').textContent     = '+$'+Math.round(tradingProfit).toLocaleString();
   document.getElementById('milliROILine').textContent    = roiTotal.toFixed(1)+'× on total · '+roi.toFixed(1)+'× on deployed';
+  const tierLabels={1:'1-buy (all-in at bottom)',2:'2-buy (T3+T4)',3:'3-buy (T2–T4)',4:'4-buy (T1–T4)'};
   document.getElementById('milliCapHint').textContent    = reserve>0
-    ?`Deploying $${Math.round(deployable).toLocaleString()} · $${Math.round(reserve).toLocaleString()} reserved as buffer`
-    :'Split across 4 tiered entries below';
+    ?`Deploying $${Math.round(deployable).toLocaleString()} · $${Math.round(reserve).toLocaleString()} reserved`
+    :`Split across ${tierCount} ${tierCount===1?'entry':'entries'} · ${tierLabels[tierCount]}`;
+  document.getElementById('milliTiersHint').textContent  = tierCount===4
+    ?"All 4 alerts · full progressive deploy"
+    :tierCount===1
+    ?"100% at the capitulation bottom — max conviction"
+    :`Bottom ${tierCount} entries · pcts normalized from 10/20/30/40`;
+  document.getElementById('milliPlanHdr').textContent    =
+    ['','📋 Single Entry Plan','📋 2-Buy Entry Plan','📋 3-Buy Entry Plan','📋 4-Tier Entry Plan'][tierCount]+' — Deploy Capital Progressively';
 
   // Hero
   document.getElementById('milliHeroNum').textContent  = '$'+Math.round(portfolio).toLocaleString();
@@ -8815,14 +8851,14 @@ function updateMilli(){
   const liqWR  = acctLiqWRes>0?'$'+Math.round(acctLiqWRes).toLocaleString():'Cannot be liquidated';
   if(totalBTC===0){
     document.getElementById('milliAcctLiq').innerHTML=`
-      <div class="acct-liq-ttl">&#128202; Account-level liquidation — all 4 tiers open simultaneously</div>
+      <div class="acct-liq-ttl">&#128202; Account-level liquidation — all ${tierCount} ${tierCount===1?'entry':'entries'} open simultaneously</div>
       <div style="padding:14px 0 4px;text-align:center;color:#6b7280;font-size:12px;">No positions deployed — your $${capital.toLocaleString()} is fully in reserve. Lower the reserve to allocate capital to tiers.</div>`;
-    return;
-  }
+    // Don't return — let scenarios/checklist/hero update with $0 values
+  } else {
   const liqWRColor = acctLiqWRes<=0?'#3fb950':(acctLiqWRes<acctLiqNoRes*0.9?'#d29922':'#f85149');
   const extraBuf = reserve>0&&acctLiqWRes>0?'$'+Math.round(moveWRes-moveNoRes).toLocaleString()+' extra buffer':reserve>0?'Full protection added':'Set reserve above to see impact';
   document.getElementById('milliAcctLiq').innerHTML=`
-    <div class="acct-liq-ttl">&#128202; Account-level liquidation — all 4 tiers open simultaneously</div>
+    <div class="acct-liq-ttl">&#128202; Account-level liquidation — all ${tierCount} ${tierCount===1?'entry':'entries'} open simultaneously</div>
     <div class="acct-liq-grid">
       <div class="alc">
         <div class="alc-lbl">Avg. entry price</div>
@@ -8845,6 +8881,7 @@ function updateMilli(){
         <div class="alc-sub">Added liquidation protection</div>
       </div>
     </div>`;
+  } // end else (totalBTC > 0)
 
   // ── SCENARIOS TABLE ────────────────────────────────────────────────
   const SCENARIOS=[
@@ -8858,9 +8895,9 @@ function updateMilli(){
     let scMargin=0,scPnL=0;
     TIERS.forEach(t=>{
       const ep=t.n===4?s.bot:t.price;
-      const c=Math.max(0,Math.floor((capital*t.pct/100*lev)/(ep*0.01)));
+      const c=Math.max(0,Math.floor((deployable*t.pct/100*lev)/(ep*0.01)));
       const m=c*ep*0.01/lev;
-      scMargin+=m; scPnL+=( s.tgt-ep)*0.01*c;
+      scMargin+=m; scPnL+=(s.tgt-ep)*0.01*c;
     });
     const scPort=scMargin+scPnL;
     const scROI=scMargin>0?scPnL/scMargin:0;
