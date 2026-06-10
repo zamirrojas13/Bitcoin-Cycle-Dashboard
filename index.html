@@ -8768,9 +8768,10 @@ function updateMilli(){
   const totalNotional = weightedEntry;             // sum(contracts × 0.01 × entry)
   const totalInitMgn  = totalMargin;               // = totalNotional / lev (approx)
   const tradingProfit = totalPnL;
-  const portfolio     = reserve+totalMargin+totalPnL; // full account at target
+  const portfolio     = capital+totalPnL; // capital (reserve+deployed) + trading profit
   const roi           = totalMargin>0?totalPnL/totalMargin:0;
   const roiTotal      = capital>0?totalPnL/capital:0;
+  const reserveExceedsCapital = reserve>=capital;
 
   // Account-level liquidation (all tiers open at same time)
   // Liq when: reserve + totalInitMgn + totalUnrealizedPnL = 0.5 × totalInitMgn
@@ -8859,7 +8860,9 @@ function updateMilli(){
   document.getElementById('milliProfit').textContent     = '+$'+Math.round(tradingProfit).toLocaleString();
   document.getElementById('milliROILine').textContent    = roiTotal.toFixed(1)+'× on total · '+roi.toFixed(1)+'× on deployed';
   const tierLabels={1:'1-buy (all-in at bottom)',2:'2-buy (T3+T4)',3:'3-buy (T2–T4)',4:'4-buy (T1–T4)'};
-  document.getElementById('milliCapHint').textContent    = reserve>0
+  document.getElementById('milliCapHint').textContent    = reserveExceedsCapital
+    ?`⚠️ Reserve ($${Math.round(reserve).toLocaleString()}) exceeds capital — $0 deployable`
+    :reserve>0
     ?`Deploying $${Math.round(deployable).toLocaleString()} · $${Math.round(reserve).toLocaleString()} reserved`
     :`Split across ${tierCount} ${tierCount===1?'entry':'entries'} · ${tierLabels[tierCount]}`;
   document.getElementById('milliTiersHint').textContent  = tierCount===4
@@ -8871,9 +8874,22 @@ function updateMilli(){
     ['','📋 Single Entry Plan','📋 2-Buy Entry Plan','📋 3-Buy Entry Plan','📋 4-Tier Entry Plan'][tierCount]+' — Deploy Capital Progressively';
 
   // Hero
-  document.getElementById('milliHeroNum').textContent  = '$'+Math.round(portfolio).toLocaleString();
-  document.getElementById('milliHeroRoi').textContent  = '+'+roiTotal.toFixed(1)+'× total · $'+Math.round(tradingProfit).toLocaleString()+' profit';
-  document.getElementById('milliHeroSub').textContent  = totalBTC.toFixed(2)+' BTC exposure · '+totalContracts+' BIT contracts'+(reserve>0?' · $'+Math.round(reserve).toLocaleString()+' reserve':'');
+  const heroNumEl = document.getElementById('milliHeroNum');
+  const heroRoiEl = document.getElementById('milliHeroRoi');
+  if(reserveExceedsCapital){
+    heroNumEl.textContent = '$'+Math.round(capital).toLocaleString();
+    heroNumEl.style.color = '#d29922';
+    heroRoiEl.textContent = '⚠️ Reserve exceeds capital — nothing to deploy';
+    heroRoiEl.style.color = '#d29922';
+    document.getElementById('milliHeroSub').textContent = 'Lower reserve below $'+Math.round(capital).toLocaleString()+' to enable trading';
+  } else {
+    heroNumEl.textContent = '$'+Math.round(portfolio).toLocaleString();
+    heroNumEl.style.color = '';
+    const profitSign = tradingProfit>=0?'+':'-';
+    heroRoiEl.textContent = profitSign+roiTotal.toFixed(1)+'× total · $'+Math.round(Math.abs(tradingProfit)).toLocaleString()+' profit';
+    heroRoiEl.style.color = tradingProfit>0?'#3fb950':'#8b949e';
+    document.getElementById('milliHeroSub').textContent = totalBTC.toFixed(2)+' BTC exposure · '+totalContracts+' BIT contracts'+(reserve>0?' · $'+Math.round(reserve).toLocaleString()+' reserve':'');
+  }
 
   // Account-level liquidation analysis box
   const liqNR  = acctLiqNoRes>0?'$'+Math.round(acctLiqNoRes).toLocaleString():'< $0 (safe)';
