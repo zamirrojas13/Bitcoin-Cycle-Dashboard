@@ -253,6 +253,9 @@ hr.sep{border:none;border-top:1px solid #21262d;margin:16px 0;}
 .mgsr{background:#161b22;border:1px solid #21262d;border-radius:6px;padding:7px 12px;flex:1;min-width:100px;text-align:center;}
 .mgsr-lbl{font-size:9px;color:#8b949e;text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px;}
 .mgsr-val{font-size:13px;font-weight:700;font-family:'JetBrains Mono',monospace;}
+.milli-phase-legend{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;justify-content:center;padding-top:8px;border-top:1px solid #21262d;}
+.mpl-item{display:flex;align-items:center;gap:5px;font-size:9px;color:#8b949e;font-family:'JetBrains Mono',monospace;letter-spacing:.03em;}
+.mpl-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
 
 .milli-tier-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-bottom:22px;}
 .milli-tier-card{background:#161b22;border:1px solid #21262d;border-radius:10px;padding:15px;position:relative;overflow:hidden;}
@@ -770,11 +773,12 @@ hr.sep{border:none;border-top:1px solid #21262d;margin:16px 0;}
       </div>
     </div>
 
-    <!-- GROWTH CURVE CHART -->
-    <div class="milli-section-hdr">&#128200; Trade Growth Curve — Portfolio vs BTC Price</div>
+    <!-- TIMELINE CHART -->
+    <div class="milli-section-hdr">&#128200; C5 Trade Journey — Portfolio &amp; BTC Over Time</div>
     <div class="milli-gc-wrap">
       <div class="milli-gc-stat-row" id="milliGcStats"><!-- JS --></div>
-      <canvas id="milliGrowthCanvas" style="max-height:320px;"></canvas>
+      <canvas id="milliGrowthCanvas" style="max-height:440px;"></canvas>
+      <div class="milli-phase-legend" id="milliPhaseLegend"><!-- JS --></div>
     </div>
 
     <!-- SCENARIOS TABLE -->
@@ -9009,112 +9013,227 @@ function updateMilli(){
   document.getElementById('cfmExample').textContent=
     `Tier 4 example:\n${exC} contracts @ $${bottom.toLocaleString()} entry\nExit @ $${(top/1000).toFixed(0)}K target\n= +$${exPnL.toLocaleString()} profit on Tier 4 alone`;
 
-  // ── GROWTH CURVE CHART ─────────────────────────────────────────────
-  (function buildGrowthChart(){
+  // ── C5 TRADE TIMELINE CHART ────────────────────────────────────────
+  (function buildTimelineChart(){
     const canvas=document.getElementById('milliGrowthCanvas');
     if(!canvas) return;
 
-    // Portfolio value at any BTC price P (all positions entered at their tier prices)
-    // This models: entries executed on the way down, now tracking recovery to target
-    function portVal(P){
-      let v=capital;
-      TIERS.forEach(t=>{if(t.contracts>0) v+=t.contracts*0.01*(P-t.price);});
-      return Math.max(-capital*2, v); // floor at -2× capital for chart readability
+    // ── Key dates (from dashboard research: 4-cycle R²=0.954 model) ──
+    const nowMs    = Date.now();
+    const botMs    = new Date('2026-10-08').getTime(); // Day 900 post-H4 = peak-prob bottom
+    const h5Ms     = new Date('2028-04-18').getTime(); // H5 halving (protocol-derived)
+    const athMs    = new Date('2029-08-01').getTime(); // C5 ATH central estimate (range Apr–Oct 2029)
+    const endMs    = new Date('2030-06-01').getTime(); // post-ATH tail
+
+    // ── Modelled BTC price at milestone nodes ─────────────────────────
+    // H5 price: historically BTC trades near previous-cycle ATH at halving
+    // C4 ATH = $126K; bottom-to-H5 historically ~2.7–3× → clamp near C4 ATH
+    const h5Price  = Math.round(Math.min(bottom*2.8, 126000*1.05));
+    const postAth  = Math.round(top*0.68); // ~32% post-ATH correction shown briefly
+
+    const ss = x=>3*x*x - 2*x*x*x; // smoothstep
+
+    function btcAt(ms){
+      const span = endMs-nowMs;
+      const t    = Math.max(0,Math.min(1,(ms-nowMs)/span));
+      const tB   = (botMs-nowMs)/span;
+      const tH   = (h5Ms -nowMs)/span;
+      const tA   = (athMs-nowMs)/span;
+      if(t<=tB){
+        // Drawdown: smooth deceleration into the bottom
+        const f=t/tB; return price+(bottom-price)*ss(f);
+      } else if(t<=tH){
+        // Base & early recovery: slow grind up (square root curve)
+        const f=(t-tB)/(tH-tB); return bottom+(h5Price-bottom)*Math.sqrt(f);
+      } else if(t<=tA){
+        // Pre-halving + bull run: accelerating into ATH
+        const f=(t-tH)/(tA-tH); return h5Price+(top-h5Price)*(1-(1-f)*(1-f));
+      } else {
+        // Post-ATH correction
+        const f=Math.min(1,(t-tA)/(1-tA)); return top+(postAth-top)*ss(f);
+      }
     }
 
-    const liqPx = acctLiqWRes>500?acctLiqWRes:0;
-    const lowestEntry = TIERS.filter(t=>t.contracts>0).reduce((m,t)=>Math.min(m,t.price),Infinity);
-    const xMin  = Math.max(500, liqPx>0?liqPx*0.45:(lowestEntry>0?lowestEntry*0.35:bottom*0.35));
-    const xMax  = top*1.12;
-    const fmtK  = v=>v>=1e6?'$'+(v/1e6).toFixed(2)+'M':'$'+(v/1000).toFixed(0)+'K';
+    // ── Generate 320 time-series data points ─────────────────────────
+    // X axis uses "days from now" so Chart.js handles ticks cleanly
+    const N=320;
+    const tsArr=[],btcArr=[];
+    const totalDays=Math.round((endMs-nowMs)/86400000);
+    for(let i=0;i<=N;i++){
+      const ms=nowMs+(endMs-nowMs)*(i/N);
+      tsArr.push(Math.round((ms-nowMs)/86400000)); // days from now
+      btcArr.push(Math.round(btcAt(ms)));
+    }
 
-    // Build X array: 280 uniform points + all key prices inserted
-    const keyPx=[liqPx,bottom,price,top,...TIERS.filter(t=>t.contracts>0).map(t=>t.price)].filter(v=>v>xMin&&v<xMax);
-    const N=280;const step=(xMax-xMin)/N;
-    const xs=new Set();
-    for(let i=0;i<=N;i++) xs.add(xMin+i*step);
-    keyPx.forEach(k=>xs.add(k));
-    const xArr=[...xs].sort((a,b)=>a-b);
-    const chartData=xArr.map(x=>({x,y:portVal(x)}));
+    // Force the path to touch exactly `bottom` (discrete sampling can overshoot by $100–$500)
+    // so that tiers priced at bottom always activate
+    {const mi=btcArr.indexOf(Math.min(...btcArr)); btcArr[mi]=bottom;}
 
-    // Stat bar
-    const portAtTarget=portVal(top);
-    const portAtBottom=portVal(bottom);
-    const portAtLiq=liqPx>0?portVal(liqPx):null;
-    const mult=capital>0?portAtTarget/capital:0;
-    const gcStats=document.getElementById('milliGcStats');
-    const liqColor=liqPx>0?'#f85149':'#3fb950';
-    gcStats.innerHTML=`
-      <div class="mgsr"><div class="mgsr-lbl">At bottom (${fmtK(bottom)})</div><div class="mgsr-val" style="color:${portAtBottom>=capital?'#3fb950':'#d29922'}">${fmtK(portAtBottom)}</div></div>
-      <div class="mgsr"><div class="mgsr-lbl">At target (${fmtK(top)})</div><div class="mgsr-val" style="color:#3fb950">${fmtK(portAtTarget)}</div></div>
-      <div class="mgsr"><div class="mgsr-lbl">Growth multiple</div><div class="mgsr-val" style="color:#3fb950">${mult.toFixed(1)}×</div></div>
-      ${liqPx>0?`<div class="mgsr"><div class="mgsr-lbl">Liq price</div><div class="mgsr-val" style="color:${liqColor}">${fmtK(liqPx)}</div></div>`:'<div class="mgsr"><div class="mgsr-lbl">Liquidation</div><div class="mgsr-val" style="color:#3fb950">Protected</div></div>'}
-      <div class="mgsr"><div class="mgsr-lbl">Break-even price</div><div class="mgsr-val" style="color:#8b949e">${avgEntry>0?fmtK(avgEntry):'—'}</div></div>`;
+    // ── Portfolio path: tiers enter once when running-min reaches entry ──
+    // Use running minimum so entry fires at the correct depth, not just current P
+    const portArr=[];
+    const entered=new Set();
+    let runMin=btcArr[0];
+    for(let i=0;i<=N;i++){
+      const P=btcArr[i];
+      runMin=Math.min(runMin,P);
+      TIERS.forEach((t,idx)=>{ if(!entered.has(idx)&&t.contracts>0&&runMin<=t.price) entered.add(idx); });
+      let v=capital;
+      entered.forEach(idx=>{ const t=TIERS[idx]; v+=t.contracts*0.01*(P-t.price); });
+      portArr.push(Math.round(v));
+    }
 
-    // Custom annotation plugin (vertical lines + capital baseline)
-    const annotPlugin={
-      id:'mgAnnot',
+    // ── Derived key-point stats ───────────────────────────────────────
+    const msToDay = ms=>Math.round((ms-nowMs)/86400000);
+    const idx  = ms=>Math.min(N,Math.max(0,Math.round(N*(ms-nowMs)/(endMs-nowMs))));
+    const portB=portArr[idx(botMs)];
+    const portH=portArr[idx(h5Ms)];
+    const portA=portArr[idx(athMs)];
+    const mult =capital>0?portA/capital:0;
+    const holdMos=Math.round((athMs-nowMs)/(30.4375*86400000));
+    const liqPx =acctLiqWRes>500?acctLiqWRes:0;
+
+    const MOS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const fmtMo=ms=>{ const d=new Date(ms); return MOS[d.getUTCMonth()]+" '"+String(d.getUTCFullYear()).slice(2); };
+    const fmtK =v=>v>=1e6?'$'+(v/1e6).toFixed(2)+'M':'$'+Math.round(v/1000)+'K';
+
+    // Break-even: first time portfolio crosses back above capital
+    let breakMs=null;
+    let wentBelow=false;
+    for(let i=0;i<=N;i++){
+      if(portArr[i]<capital) wentBelow=true;
+      if(wentBelow&&portArr[i]>=capital&&!breakMs){ breakMs=tsArr[i]; break; }
+    }
+
+    // Max drawdown during the path
+    const minPort=Math.min(...portArr);
+    const maxDD=capital>0?Math.round((capital-minPort)/capital*100):0;
+
+    // ── Stats row ─────────────────────────────────────────────────────
+    document.getElementById('milliGcStats').innerHTML=`
+      <div class="mgsr"><div class="mgsr-lbl">Bottom ${fmtMo(botMs)}</div><div class="mgsr-val" style="color:${portB>=capital?'#3fb950':'#f85149'}">${fmtK(portB)}</div></div>
+      <div class="mgsr"><div class="mgsr-lbl">Break-even</div><div class="mgsr-val" style="color:#8b949e">${breakMs!==null?fmtMo(nowMs+breakMs*86400000):'N/A'}</div></div>
+      <div class="mgsr"><div class="mgsr-lbl">H5 ${fmtMo(h5Ms)}</div><div class="mgsr-val" style="color:#d29922">${fmtK(portH)}</div></div>
+      <div class="mgsr"><div class="mgsr-lbl">Exit ${fmtMo(athMs)}</div><div class="mgsr-val" style="color:#3fb950">${fmtK(portA)}</div></div>
+      <div class="mgsr"><div class="mgsr-lbl">Growth</div><div class="mgsr-val" style="color:#3fb950">${mult.toFixed(1)}×</div></div>
+      <div class="mgsr"><div class="mgsr-lbl">Hold</div><div class="mgsr-val" style="color:#8b949e">${holdMos} mo</div></div>
+      <div class="mgsr"><div class="mgsr-lbl">Max drawdown</div><div class="mgsr-val" style="color:${maxDD>40?'#f85149':'#d29922'}">-${maxDD}%</div></div>`;
+
+    // ── Phase legend ──────────────────────────────────────────────────
+    const legEl=document.getElementById('milliPhaseLegend');
+    if(legEl) legEl.innerHTML=`
+      <span class="mpl-item"><span class="mpl-dot" style="background:#f85149"></span>Drawdown (entries fire)</span>
+      <span class="mpl-item"><span class="mpl-dot" style="background:#e3b341"></span>Underwater / recovery</span>
+      <span class="mpl-item"><span class="mpl-dot" style="background:#58a6ff"></span>Bull run</span>
+      <span class="mpl-item"><span class="mpl-dot" style="background:#3fb950"></span>ATH profit zone</span>
+      <span class="mpl-item"><span class="mpl-dot" style="background:rgba(210,147,34,0.9)"></span>H5 halving Apr '28</span>
+      <span class="mpl-item"><span class="mpl-dot" style="background:rgba(88,166,255,0.7)"></span>Tier entries</span>`;
+
+    // ── Annotation plugin ─────────────────────────────────────────────
+    const tlPlugin={
+      id:'tlAnnot',
       afterDraw(chart){
-        const {ctx,chartArea:ca,scales:{x:xsc,y:ysc}}=chart;
-        // Capital baseline
-        const cpy=ysc.getPixelForValue(capital);
-        if(cpy>=ca.top&&cpy<=ca.bottom){
-          ctx.save();ctx.strokeStyle='rgba(139,148,158,0.3)';ctx.setLineDash([2,6]);ctx.lineWidth=1;
-          ctx.beginPath();ctx.moveTo(ca.left,cpy);ctx.lineTo(ca.right,cpy);ctx.stroke();
-          ctx.fillStyle='#6b7280';ctx.font='9px monospace';ctx.textAlign='left';ctx.setLineDash([]);
-          ctx.fillText('Capital $'+Math.round(capital/1000)+'K',ca.left+4,cpy-4);
-          ctx.restore();
-        }
-        // Vertical annotation lines
-        const ann=chart.options.plugins.mgAnnot?.lines||[];
-        ann.forEach(a=>{
-          const px=xsc.getPixelForValue(a.v);
+        const {ctx,chartArea:ca,scales:{xA,yL,yR}}=chart;
+
+        function vline(ms,color,lbl,top,dash){
+          const px=xA.getPixelForValue(msToDay(ms));
           if(px<ca.left||px>ca.right) return;
           ctx.save();
-          ctx.strokeStyle=a.color;ctx.setLineDash(a.dash||[4,4]);ctx.lineWidth=a.w||1;
-          ctx.beginPath();ctx.moveTo(px,ca.top);ctx.lineTo(px,ca.bottom);ctx.stroke();
-          if(a.lbl){
-            ctx.fillStyle=a.color;ctx.font='bold 9px JetBrains Mono,monospace';
-            ctx.textAlign='center';ctx.setLineDash([]);
-            ctx.fillText(a.lbl,px,ca.top+(a.top||12));
+          ctx.strokeStyle=color; ctx.setLineDash(dash||[4,4]); ctx.lineWidth=1.5;
+          ctx.beginPath(); ctx.moveTo(px,ca.top); ctx.lineTo(px,ca.bottom); ctx.stroke();
+          if(lbl){
+            ctx.fillStyle=color; ctx.font='bold 9px monospace';
+            ctx.textAlign='center'; ctx.setLineDash([]);
+            ctx.fillText(lbl,px,ca.top+(top||14));
           }
           ctx.restore();
+        }
+        function hline(scale,val,color,lbl,right){
+          const py=scale.getPixelForValue(val);
+          if(py<ca.top||py>ca.bottom) return;
+          ctx.save();
+          ctx.strokeStyle=color; ctx.setLineDash([3,5]); ctx.lineWidth=1;
+          ctx.beginPath(); ctx.moveTo(ca.left,py); ctx.lineTo(ca.right,py); ctx.stroke();
+          if(lbl){
+            ctx.fillStyle=color; ctx.font='9px monospace'; ctx.setLineDash([]);
+            ctx.textAlign=right?'right':'left';
+            ctx.fillText(lbl,right?ca.right-4:ca.left+4,py-4);
+          }
+          ctx.restore();
+        }
+
+        // Capital baseline (left axis)
+        hline(yL,capital,'rgba(139,148,158,0.3)','Capital $'+Math.round(capital/1000)+'K',false);
+        // Liq price (right axis — it's a BTC price)
+        if(liqPx>500) hline(yR,liqPx,'rgba(248,81,73,0.5)','LIQ $'+Math.round(liqPx/1000)+'K',true);
+
+        // Tier entry vertical lines (find first crossing on the way down)
+        let tOffset=14;
+        const sortedTiers=[...TIERS].filter(t=>t.contracts>0).sort((a,b)=>b.price-a.price);
+        sortedTiers.forEach(t=>{
+          for(let k=0;k<btcArr.length;k++){
+            if(btcArr[k]<=t.price){
+              // tsArr[k] is already days — draw directly without msToDay conversion
+              const px=xA.getPixelForValue(tsArr[k]);
+              if(px>=ca.left&&px<=ca.right){
+                ctx.save();
+                ctx.strokeStyle='rgba(88,166,255,0.55)'; ctx.setLineDash([3,4]); ctx.lineWidth=1.5;
+                ctx.beginPath(); ctx.moveTo(px,ca.top); ctx.lineTo(px,ca.bottom); ctx.stroke();
+                ctx.fillStyle='rgba(88,166,255,0.75)'; ctx.font='bold 9px monospace';
+                ctx.textAlign='center'; ctx.setLineDash([]);
+                ctx.fillText('T'+t.n,px,ca.top+tOffset);
+                ctx.restore();
+                tOffset+=11;
+              }
+              break;
+            }
+          }
         });
+
+        // Key events
+        vline(nowMs,'rgba(139,148,158,0.4)','NOW',26,[2,5]);
+        vline(botMs,'rgba(248,81,73,0.6)','BOT',14,[4,3]);
+        vline(h5Ms,'rgba(210,147,34,0.85)','H5',14,[5,3]);
+        vline(athMs,'rgba(63,185,80,0.9)','EXIT',14,[4,3]);
       }
     };
 
-    // Build annotation lines
-    const lines=[];
-    TIERS.filter(t=>t.contracts>0).forEach((t,i)=>{
-      lines.push({v:t.price,color:'rgba(88,166,255,0.4)',lbl:'T'+(i+1),dash:[3,4],w:1,top:22+i*12});
-    });
-    if(avgEntry>0&&avgEntry>xMin&&avgEntry<xMax){
-      lines.push({v:avgEntry,color:'rgba(139,148,158,0.5)',lbl:'BEP',dash:[2,5],w:1,top:12});
-    }
-    if(liqPx>0) lines.push({v:liqPx,color:'rgba(248,81,73,0.8)',lbl:'LIQ',dash:[4,3],w:1.5,top:12});
-    if(price>xMin&&price<xMax) lines.push({v:price,color:'rgba(139,148,158,0.45)',lbl:'NOW',dash:[2,5],w:1,top:36});
-    lines.push({v:top,color:'rgba(63,185,80,0.75)',lbl:'TARGET',dash:[4,3],w:1.5,top:12});
-
+    // ── Build Chart.js ────────────────────────────────────────────────
     const ex=Chart.getChart('milliGrowthCanvas');
     if(ex) ex.destroy();
 
     new Chart(canvas.getContext('2d'),{
       type:'line',
-      data:{datasets:[{
-        label:'Portfolio',
-        data:chartData,
-        tension:0,
-        pointRadius:0,
-        borderWidth:2.5,
-        fill:false,
-        segment:{borderColor:ctx=>{
-          const p=ctx.p0.parsed.x;
-          if(liqPx>0&&p<=liqPx*1.02) return '#f85149';
-          if(p<=bottom) return '#e3b341';
-          if(p>=top*0.97) return '#3fb950';
-          return '#58a6ff';
-        }}
-      }]},
+      data:{
+        datasets:[
+          {
+            label:'Portfolio',
+            data:portArr.map((y,i)=>({x:tsArr[i],y})),
+            yAxisID:'yL',
+            tension:0.35,
+            pointRadius:0,
+            borderWidth:2.5,
+            fill:false,
+            segment:{borderColor:ctx=>{
+              const v=ctx.p0.parsed.y;
+              if(v<capital*0.6)  return '#f85149';
+              if(v<capital)      return '#e3b341';
+              if(v>=capital*4)   return '#3fb950';
+              return '#58a6ff';
+            }}
+          },
+          {
+            label:'BTC Price',
+            data:btcArr.map((y,i)=>({x:tsArr[i],y})),
+            yAxisID:'yR',
+            tension:0.35,
+            pointRadius:0,
+            borderWidth:1.5,
+            borderColor:'rgba(255,255,255,0.13)',
+            fill:false
+          }
+        ]
+      },
       options:{
         responsive:true,
         animation:false,
@@ -9123,29 +9242,59 @@ function updateMilli(){
           legend:{display:false},
           tooltip:{
             backgroundColor:'#161b22',borderColor:'#30363d',borderWidth:1,
-            titleColor:'#8b949e',bodyColor:'#e6edf3',
+            titleColor:'#8b949e',bodyColor:'#e6edf3',padding:10,
             callbacks:{
-              title:items=>'BTC: '+fmtK(items[0].parsed.x),
-              label:item=>'Portfolio: $'+Math.round(item.parsed.y).toLocaleString()+
-                (capital>0?' ('+((item.parsed.y/capital)).toFixed(2)+'×)':'')
+              title:items=>{
+                const d=new Date(nowMs+items[0].parsed.x*86400000);
+                return MOS[d.getUTCMonth()]+' '+d.getUTCFullYear();
+              },
+              label:item=>{
+                if(item.datasetIndex===0){
+                  const v=item.parsed.y;
+                  const pct=capital>0?((v-capital)/capital*100).toFixed(1):0;
+                  const sign=pct>=0?'+':'';
+                  return `Portfolio: $${Math.round(v).toLocaleString()} (${sign}${pct}%)`;
+                }
+                return `BTC: $${Math.round(item.parsed.y).toLocaleString()}`;
+              },
+              afterBody:items=>{
+                const P=btcArr[items[0].dataIndex];
+                const open=TIERS.filter(t=>t.contracts>0&&P<=t.price)
+                  .map(t=>'T'+t.n+' @$'+Math.round(t.price/1000)+'K');
+                return [open.length?'Open: '+open.join(' · '):'No positions yet'];
+              }
             }
-          },
-          mgAnnot:{lines}
+          }
         },
         scales:{
-          x:{type:'linear',
-            title:{display:true,text:'BTC Price',color:'#8b949e',font:{size:10,family:"'JetBrains Mono',monospace"}},
-            ticks:{color:'#8b949e',callback:v=>fmtK(v),maxTicksLimit:8,font:{size:9}},
-            grid:{color:'rgba(33,38,45,0.8)'}
+          xA:{
+            type:'linear',
+            min:0,
+            max:totalDays,
+            ticks:{
+              color:'#8b949e',maxTicksLimit:11,font:{size:9,family:"'JetBrains Mono',monospace"},
+              callback:v=>{
+                const d=new Date(nowMs+v*86400000);
+                return MOS[d.getUTCMonth()]+" '"+String(d.getUTCFullYear()).slice(2);
+              }
+            },
+            grid:{color:'rgba(33,38,45,0.5)'}
           },
-          y:{
-            title:{display:true,text:'Portfolio Value',color:'#8b949e',font:{size:10,family:"'JetBrains Mono',monospace"}},
-            ticks:{color:'#8b949e',callback:v=>'$'+Math.round(v/1000)+'K',maxTicksLimit:6,font:{size:9}},
-            grid:{color:'rgba(33,38,45,0.8)'}
+          yL:{
+            type:'linear',position:'left',
+            title:{display:true,text:'Portfolio ($)',color:'#8b949e',font:{size:10,family:"'JetBrains Mono',monospace"}},
+            ticks:{color:'#8b949e',callback:v=>v>=1e6?'$'+(v/1e6).toFixed(1)+'M':'$'+Math.round(v/1000)+'K',maxTicksLimit:6,font:{size:9}},
+            grid:{color:'rgba(33,38,45,0.5)'}
+          },
+          yR:{
+            type:'linear',position:'right',
+            title:{display:true,text:'BTC Price',color:'#6b7280',font:{size:10,family:"'JetBrains Mono',monospace"}},
+            ticks:{color:'#6b7280',callback:v=>'$'+Math.round(v/1000)+'K',maxTicksLimit:6,font:{size:9}},
+            grid:{display:false}
           }
         }
       },
-      plugins:[annotPlugin]
+      plugins:[tlPlugin]
     });
   })();
 }
