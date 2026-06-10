@@ -9220,25 +9220,28 @@ function updateMilli(){
         // Capital baseline (left axis)
         hline(yL,capital,'rgba(139,148,158,0.28)','Capital $'+Math.round(capital/1000)+'K',false);
 
-        // Liquidation zone — red fill + strong line + pill label
+        // Liquidation zone — clipped to bear phase only (day 0 → bottom day)
         if(liqPx>500){
           const ly=yR.getPixelForValue(liqPx);
-          if(ly>=ca.top&&ly<=ca.bottom){
-            // Danger zone fill below liq line
+          // Only draw during bear phase — stop at bottom date
+          const botPx=Math.min(xA.getPixelForValue(msToDay(botMs)),ca.right);
+          const liqRight=Math.max(ca.left,Math.min(botPx,ca.right));
+          if(ly>=ca.top&&ly<=ca.bottom&&liqRight>ca.left){
+            // Danger zone fill below liq line (bear phase only)
             ctx.save();
             ctx.fillStyle='rgba(248,81,73,0.06)';
-            ctx.fillRect(ca.left,ly,ca.right-ca.left,ca.bottom-ly);
+            ctx.fillRect(ca.left,ly,liqRight-ca.left,ca.bottom-ly);
             ctx.restore();
-            // Solid liq line
+            // Dashed liq line (bear phase only)
             ctx.save();
             ctx.strokeStyle='rgba(248,81,73,0.75)';ctx.setLineDash([5,3]);ctx.lineWidth=1.5;
-            ctx.beginPath();ctx.moveTo(ca.left,ly);ctx.lineTo(ca.right,ly);ctx.stroke();
+            ctx.beginPath();ctx.moveTo(ca.left,ly);ctx.lineTo(liqRight,ly);ctx.stroke();
             ctx.setLineDash([]);
-            // Pill label on right
+            // Pill label at end of line (right edge of bear phase)
             const lbl='☠ LIQ  $'+Math.round(liqPx/1000)+'K';
             ctx.font='bold 9px monospace';
             const tw=ctx.measureText(lbl).width;
-            const px2=ca.right-6,py2=ly;
+            const px2=liqRight-2,py2=ly;
             ctx.fillStyle='rgba(248,81,73,0.18)';
             ctx.beginPath();ctx.roundRect(px2-tw-10,py2-9,tw+14,14,4);ctx.fill();
             ctx.strokeStyle='rgba(248,81,73,0.55)';ctx.lineWidth=1;
