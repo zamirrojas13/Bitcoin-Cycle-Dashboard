@@ -9065,18 +9065,18 @@ function updateMilli(){
       btcArr.push(Math.round(btcAt(ms)));
     }
 
-    // Force the path to touch exactly `bottom` (discrete sampling can overshoot by $100–$500)
-    // so that tiers priced at bottom always activate
+    // Force the path to touch exactly `bottom` so bottom-priced tiers always activate
     {const mi=btcArr.indexOf(Math.min(...btcArr)); btcArr[mi]=bottom;}
 
     // ── Portfolio path: tiers enter once when running-min reaches entry ──
-    // Use running minimum so entry fires at the correct depth, not just current P
     const portArr=[];
+    const runMinArr=[]; // running-min BTC price up to each index (used by tooltip)
     const entered=new Set();
     let runMin=btcArr[0];
     for(let i=0;i<=N;i++){
       const P=btcArr[i];
       runMin=Math.min(runMin,P);
+      runMinArr.push(runMin);
       TIERS.forEach((t,idx)=>{ if(!entered.has(idx)&&t.contracts>0&&runMin<=t.price) entered.add(idx); });
       let v=capital;
       entered.forEach(idx=>{ const t=TIERS[idx]; v+=t.contracts*0.01*(P-t.price); });
@@ -9163,9 +9163,36 @@ function updateMilli(){
         }
 
         // Capital baseline (left axis)
-        hline(yL,capital,'rgba(139,148,158,0.3)','Capital $'+Math.round(capital/1000)+'K',false);
-        // Liq price (right axis — it's a BTC price)
-        if(liqPx>500) hline(yR,liqPx,'rgba(248,81,73,0.5)','LIQ $'+Math.round(liqPx/1000)+'K',true);
+        hline(yL,capital,'rgba(139,148,158,0.28)','Capital $'+Math.round(capital/1000)+'K',false);
+
+        // Liquidation zone — red fill + strong line + pill label
+        if(liqPx>500){
+          const ly=yR.getPixelForValue(liqPx);
+          if(ly>=ca.top&&ly<=ca.bottom){
+            // Danger zone fill below liq line
+            ctx.save();
+            ctx.fillStyle='rgba(248,81,73,0.06)';
+            ctx.fillRect(ca.left,ly,ca.right-ca.left,ca.bottom-ly);
+            ctx.restore();
+            // Solid liq line
+            ctx.save();
+            ctx.strokeStyle='rgba(248,81,73,0.75)';ctx.setLineDash([5,3]);ctx.lineWidth=1.5;
+            ctx.beginPath();ctx.moveTo(ca.left,ly);ctx.lineTo(ca.right,ly);ctx.stroke();
+            ctx.setLineDash([]);
+            // Pill label on right
+            const lbl='☠ LIQ  $'+Math.round(liqPx/1000)+'K';
+            ctx.font='bold 9px monospace';
+            const tw=ctx.measureText(lbl).width;
+            const px2=ca.right-6,py2=ly;
+            ctx.fillStyle='rgba(248,81,73,0.18)';
+            ctx.beginPath();ctx.roundRect(px2-tw-10,py2-9,tw+14,14,4);ctx.fill();
+            ctx.strokeStyle='rgba(248,81,73,0.55)';ctx.lineWidth=1;
+            ctx.beginPath();ctx.roundRect(px2-tw-10,py2-9,tw+14,14,4);ctx.stroke();
+            ctx.fillStyle='#f85149';ctx.textAlign='right';
+            ctx.fillText(lbl,px2,py2+2);
+            ctx.restore();
+          }
+        }
 
         // Tier entry vertical lines (find first crossing on the way down)
         let tOffset=14;
@@ -9241,27 +9268,54 @@ function updateMilli(){
         plugins:{
           legend:{display:false},
           tooltip:{
-            backgroundColor:'#161b22',borderColor:'#30363d',borderWidth:1,
-            titleColor:'#8b949e',bodyColor:'#e6edf3',padding:10,
+            backgroundColor:'#0d1117',borderColor:'#30363d',borderWidth:1,
+            titleColor:'#e6edf3',bodyColor:'#c9d1d9',padding:12,
+            displayColors:false,
             callbacks:{
               title:items=>{
-                const d=new Date(nowMs+items[0].parsed.x*86400000);
-                return MOS[d.getUTCMonth()]+' '+d.getUTCFullYear();
+                const ms2=nowMs+items[0].parsed.x*86400000;
+                const d=new Date(ms2);
+                const phase=ms2<botMs?'📉 Drawdown':ms2<h5Ms?'🔄 Recovery':ms2<athMs?'🚀 Bull Run':'📊 Post-ATH';
+                return [MOS[d.getUTCMonth()]+' '+d.getUTCFullYear()+'  ·  '+phase];
               },
+              beforeBody:()=>['─────────────────────────'],
               label:item=>{
                 if(item.datasetIndex===0){
                   const v=item.parsed.y;
+                  const pnl=Math.round(v-capital);
                   const pct=capital>0?((v-capital)/capital*100).toFixed(1):0;
-                  const sign=pct>=0?'+':'';
-                  return `Portfolio: $${Math.round(v).toLocaleString()} (${sign}${pct}%)`;
+                  const ps=pnl>=0?'+':'-';
+                  const cs=+pct>=0?'+':'';
+                  return [
+                    `Portfolio   $${Math.round(v).toLocaleString()}`,
+                    `P&L         ${ps}$${Math.abs(pnl).toLocaleString()}  (${cs}${pct}%)`
+                  ];
                 }
-                return `BTC: $${Math.round(item.parsed.y).toLocaleString()}`;
+                return `BTC Price   $${Math.round(item.parsed.y).toLocaleString()}`;
               },
               afterBody:items=>{
-                const P=btcArr[items[0].dataIndex];
-                const open=TIERS.filter(t=>t.contracts>0&&P<=t.price)
-                  .map(t=>'T'+t.n+' @$'+Math.round(t.price/1000)+'K');
-                return [open.length?'Open: '+open.join(' · '):'No positions yet'];
+                const i=items[0].dataIndex;
+                const P=btcArr[i];
+                const ms2=nowMs+items[0].parsed.x*86400000;
+                const lines=['─────────────────────────'];
+                // Use running-min to determine which tiers were entered by this point
+                const rm=runMinArr[i]||P;
+                const active=TIERS.filter(t=>t.contracts>0&&rm<=t.price);
+                if(active.length){
+                  active.forEach(t=>{
+                    const tpnl=Math.round(t.contracts*0.01*(P-t.price));
+                    const ps=tpnl>=0?'+':'-';
+                    lines.push(`T${t.n} @$${Math.round(t.price/1000)}K  →  ${ps}$${Math.abs(tpnl).toLocaleString()}`);
+                  });
+                } else {
+                  lines.push('No positions open yet');
+                }
+                const daysLeft=Math.round((athMs-ms2)/86400000);
+                if(daysLeft>0){
+                  lines.push('─────────────────────────');
+                  lines.push(`⏱  ${Math.round(daysLeft/30)} mo to exit  (${fmtMo(athMs)})`);
+                }
+                return lines;
               }
             }
           }
