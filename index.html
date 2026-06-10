@@ -8707,7 +8707,7 @@ function updateMilli(){
     {n:1,label:'Alert 1 — Early Warning',  price:57000, pct:10, note:'-55% from ATH · Analyst consensus upper bound'},
     {n:2,label:'Alert 2 — In the Zone',    price:50000, pct:20, note:'-60% from ATH · Central maturity-adjusted estimate'},
     {n:3,label:'Alert 3 — High Conviction',price:44000, pct:30, note:'-65% from ATH · Conservative historical analog'},
-    {n:4,label:'Alert 4 — Capitulation',   price:bottom,pct:40, note:'8%+ weekly flush below $50K · Deploy final 40%'},
+    {n:4,label:'Alert 4 — Capitulation',   price:Math.min(bottom,43000),pct:40, note:'8%+ weekly flush below $50K · Deploy final 40%'},
   ];
   // Slice last tierCount entries (highest conviction) and normalize pcts to 100%
   const rawTiers = TIER_POOL.slice(4-tierCount);
