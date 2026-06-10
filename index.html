@@ -8843,8 +8843,8 @@ function updateMilli(){
   const bannerIcon=worstGapStatus==='red'?'&#128680;':worstGapStatus==='yellow'?'&#9888;&#65039;':'&#9989;';
   const resNote2=reserve>0?` Your $${reserve.toLocaleString()} cash reserve extends each tier's liq distance — see table.`:'';
   const bannerMsg={
-    red:`<strong>High liquidation risk at ${lev}×.</strong> One or more tiers are within $3K of forced liquidation — inside the typical weekend gap range ($2K–$5K+). Coinbase halts Fri 5 PM ET → Sun 6 PM ET and you <em>cannot exit</em>. A gap opening against you fires liquidation instantly. <strong>${reserve>0?`Your reserve helps — increase it or reduce leverage to ≤${safeGlobal}×.`:`Increase your cash reserve above, or reduce leverage to ≤${safeGlobal}×.`}</strong>`,
-    yellow:`<strong>Moderate risk at ${lev}×.</strong> Positions survive a typical $3K gap but a $5K+ weekend opening reaches your maintenance floor.${resNote2} Recommended: increase reserve or reduce to ≤${safeG5}× before weekends.`,
+    red:`<strong>High liquidation risk at ${lev}×.</strong> One or more tiers are within $3K of forced liquidation — inside the typical weekend gap range. Coinbase halts Fri 5 PM ET → Sun 6 PM ET and you <em>cannot exit</em>. A gap opening against you fires liquidation instantly. <strong>${reserve>0?'Your reserve helps — increase it further or switch to 2× or 4× leverage.':'Add cash reserve above or switch to 2× or 4× leverage to stay safe.'}</strong>`,
+    yellow:`<strong>Moderate risk at ${lev}×.</strong> Positions survive a typical gap but a large weekend move could hit your maintenance floor.${resNote2} Consider adding reserve or using 2× leverage before weekends.`,
     green:`<strong>Margin healthy at ${lev}×.</strong> All tiers survive a $5K+ adverse move before hitting maintenance.${resNote2} Still reduce size or leverage before weekends as a precaution.`
   };
   if(totalContracts===0){
@@ -8855,11 +8855,14 @@ function updateMilli(){
   } else {
     document.getElementById('milliBanner').innerHTML=
       `<div class="margin-risk-banner ${bannerClass}"><span class="mrb-icon">${bannerIcon}</span><span>${bannerMsg[worstGapStatus]}</span></div>`;
+    const weekendRisk=worstGapStatus==='red'?'HIGH':worstGapStatus==='yellow'?'MEDIUM':'LOW';
+    const weekendColor=worstGapStatus==='red'?'#f85149':worstGapStatus==='yellow'?'#d29922':'#3fb950';
+    const minBuffer=Math.min(...TIERS.filter(t=>t.contracts>0).map(t=>{const ep=t.price;const alloc=deployable*t.pct/100;const c=t.contracts;const initM=c*ep*0.01/lev;const resS=totalInitMgn>0?reserve*(initM/totalInitMgn):0;return ep/(lev*2)+(c*0.01>0?resS/(c*0.01):0);}));
     document.getElementById('milliMarginRec').innerHTML=`
-      <div class="margin-rec-card"><div class="mrc-lbl">Your leverage</div><div class="mrc-val" style="color:${worstGapStatus==='red'?'#f85149':worstGapStatus==='yellow'?'#d29922':'#3fb950'}">${lev}&times;</div><div class="mrc-sub">Selected above</div></div>
-      <div class="margin-rec-card"><div class="mrc-lbl">Safe for $3K gap</div><div class="mrc-val" style="color:#d29922;">&le;${safeGlobal}&times;</div><div class="mrc-sub">Survives typical weekend gap</div></div>
-      <div class="margin-rec-card"><div class="mrc-lbl">Safe for $5K gap</div><div class="mrc-val" style="color:#3fb950;">&le;${safeG5}&times;</div><div class="mrc-sub">Survives large gap event</div></div>
-      <div class="margin-rec-card"><div class="mrc-lbl">Worst-case weekend rule</div><div class="mrc-val" style="color:#bc8cff;">Fri 4PM</div><div class="mrc-sub">Reduce or close before halt</div></div>`;
+      <div class="margin-rec-card"><div class="mrc-lbl">Your leverage</div><div class="mrc-val" style="color:${worstGapStatus==='red'?'#f85149':worstGapStatus==='yellow'?'#d29922':'#3fb950'}">${lev}&times;</div><div class="mrc-sub">2×=conservative · 4×=moderate · 10×=aggressive</div></div>
+      <div class="margin-rec-card"><div class="mrc-lbl">Smallest liq buffer</div><div class="mrc-val" style="color:${weekendColor}">$${Math.round(minBuffer).toLocaleString()}</div><div class="mrc-sub">BTC can drop this much before forced liq</div></div>
+      <div class="margin-rec-card"><div class="mrc-lbl">Weekend risk</div><div class="mrc-val" style="color:${weekendColor}">${weekendRisk}</div><div class="mrc-sub">Coinbase halts Fri 5PM – Sun 6PM ET</div></div>
+      <div class="margin-rec-card"><div class="mrc-lbl">Rule of thumb</div><div class="mrc-val" style="color:#bc8cff;">Fri 4PM</div><div class="mrc-sub">Reduce or close positions before halt</div></div>`;
   }
 
   document.getElementById('milliAvgEntry').textContent   = '$'+Math.round(avgEntry).toLocaleString();
