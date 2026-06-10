@@ -9220,44 +9220,37 @@ function updateMilli(){
         // Capital baseline (left axis)
         hline(yL,capital,'rgba(139,148,158,0.28)','Capital $'+Math.round(capital/1000)+'K',false);
 
-        // Liquidation zone — clipped to bear phase only (day 0 → bottom day)
+        // Liquidation zone — bear phase through break-even (shows LIQ below all buys)
         if(liqPx>500){
           const ly=yR.getPixelForValue(liqPx);
-          // Only draw during bear phase — stop at bottom date
-          const botPx=Math.min(xA.getPixelForValue(msToDay(botMs)),ca.right);
-          const liqRight=Math.max(ca.left,Math.min(botPx,ca.right));
+          // Extend to break-even date so all tier entries are visibly above the LIQ line
+          const liqEndDay = breakMs!==null ? breakMs : msToDay(h5Ms);
+          const liqRight=Math.max(ca.left,Math.min(xA.getPixelForValue(liqEndDay),ca.right));
           if(ly>=ca.top&&ly<=ca.bottom&&liqRight>ca.left){
-            // Danger zone fill below liq line (bear phase only)
+            // Danger zone fill
             ctx.save();
-            ctx.fillStyle='rgba(248,81,73,0.06)';
+            ctx.fillStyle='rgba(248,81,73,0.05)';
             ctx.fillRect(ca.left,ly,liqRight-ca.left,ca.bottom-ly);
             ctx.restore();
-            // Dashed liq line (bear phase only)
+            // Dashed liq line
             ctx.save();
-            ctx.strokeStyle='rgba(248,81,73,0.75)';ctx.setLineDash([5,3]);ctx.lineWidth=1.5;
+            ctx.strokeStyle='rgba(248,81,73,0.65)';ctx.setLineDash([5,3]);ctx.lineWidth=1.5;
             ctx.beginPath();ctx.moveTo(ca.left,ly);ctx.lineTo(liqRight,ly);ctx.stroke();
             ctx.setLineDash([]);
-            // Pill label at end of line (right edge of bear phase)
+            // Single pill label — float at 25% of line width from the left, avoids tier-line crowding
             const lbl='☠ LIQ  $'+Math.round(liqPx/1000)+'K';
             ctx.font='bold 9px monospace';
             const tw=ctx.measureText(lbl).width;
-            const px2=liqRight-2,py2=ly;
+            const lineW=liqRight-ca.left;
+            // Position: 25% along the line but ensure it fits
+            const pillX=Math.min(ca.left+lineW*0.25+tw+10, liqRight-4);
+            const py2=ly;
             ctx.fillStyle='rgba(248,81,73,0.18)';
-            ctx.beginPath();ctx.roundRect(px2-tw-10,py2-9,tw+14,14,4);ctx.fill();
+            ctx.beginPath();ctx.roundRect(pillX-tw-10,py2-9,tw+14,14,4);ctx.fill();
             ctx.strokeStyle='rgba(248,81,73,0.55)';ctx.lineWidth=1;
-            ctx.beginPath();ctx.roundRect(px2-tw-10,py2-9,tw+14,14,4);ctx.stroke();
+            ctx.beginPath();ctx.roundRect(pillX-tw-10,py2-9,tw+14,14,4);ctx.stroke();
             ctx.fillStyle='#f85149';ctx.textAlign='right';
-            ctx.fillText(lbl,px2,py2+2);
-            // Left-side label
-            ctx.save();
-            ctx.font='bold 9px monospace';
-            const lblL='LIQ';const twL=ctx.measureText(lblL).width;
-            ctx.fillStyle='rgba(248,81,73,0.15)';
-            ctx.beginPath();ctx.roundRect(ca.left+3,py2-9,twL+10,14,4);ctx.fill();
-            ctx.strokeStyle='rgba(248,81,73,0.4)';ctx.lineWidth=1;
-            ctx.beginPath();ctx.roundRect(ca.left+3,py2-9,twL+10,14,4);ctx.stroke();
-            ctx.fillStyle='rgba(248,81,73,0.9)';ctx.textAlign='left';
-            ctx.fillText(lblL,ca.left+8,py2+2);
+            ctx.fillText(lbl,pillX,py2+2);
             ctx.restore();
           }
         }
