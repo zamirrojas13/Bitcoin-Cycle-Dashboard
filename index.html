@@ -9213,35 +9213,51 @@ function updateMilli(){
         // Liquidation zone — bear phase through break-even (shows LIQ below all buys)
         if(liqPx>500){
           const ly=yR.getPixelForValue(liqPx);
-          // Extend to break-even date so all tier entries are visibly above the LIQ line
           const liqEndDay = breakMs!==null ? breakMs : msToDay(h5Ms);
           const liqRight=Math.max(ca.left,Math.min(xA.getPixelForValue(liqEndDay),ca.right));
+          const lbl='☠ LIQ  $'+Math.round(liqPx/1000)+'K';
+
           if(ly>=ca.top&&ly<=ca.bottom&&liqRight>ca.left){
-            // Danger zone fill
+            // LIQ is within visible range — draw line + fill + pill
             ctx.save();
-            ctx.fillStyle='rgba(248,81,73,0.05)';
+            ctx.fillStyle='rgba(248,81,73,0.06)';
             ctx.fillRect(ca.left,ly,liqRight-ca.left,ca.bottom-ly);
             ctx.restore();
-            // Dashed liq line
             ctx.save();
-            ctx.strokeStyle='rgba(248,81,73,0.65)';ctx.setLineDash([5,3]);ctx.lineWidth=1.5;
+            ctx.strokeStyle='rgba(248,81,73,0.75)';ctx.setLineDash([5,3]);ctx.lineWidth=2;
             ctx.beginPath();ctx.moveTo(ca.left,ly);ctx.lineTo(liqRight,ly);ctx.stroke();
             ctx.setLineDash([]);
-            // Single pill label — float at 25% of line width, avoid Capital baseline text
-            const lbl='☠ LIQ  $'+Math.round(liqPx/1000)+'K';
-            ctx.font='bold 9px monospace';
+            ctx.font='bold 10px monospace';
             const tw=ctx.measureText(lbl).width;
             const lineW=liqRight-ca.left;
-            const pillX=Math.min(ca.left+lineW*0.25+tw+10, liqRight-4);
-            // Offset vertically if too close to the Capital baseline label
+            const pillX=Math.min(ca.left+lineW*0.25+tw+10,liqRight-4);
             const capitalPy=yL.getPixelForValue(capital);
-            const py2=Math.abs(ly-capitalPy)<16 ? ly-16 : ly;
-            ctx.fillStyle='rgba(248,81,73,0.18)';
-            ctx.beginPath();ctx.roundRect(pillX-tw-10,py2-9,tw+14,14,4);ctx.fill();
-            ctx.strokeStyle='rgba(248,81,73,0.55)';ctx.lineWidth=1;
-            ctx.beginPath();ctx.roundRect(pillX-tw-10,py2-9,tw+14,14,4);ctx.stroke();
+            const py2=Math.abs(ly-capitalPy)<18?ly-18:ly;
+            ctx.fillStyle='rgba(248,81,73,0.22)';
+            ctx.beginPath();ctx.roundRect(pillX-tw-12,py2-10,tw+16,16,4);ctx.fill();
+            ctx.strokeStyle='rgba(248,81,73,0.65)';ctx.lineWidth=1;
+            ctx.beginPath();ctx.roundRect(pillX-tw-12,py2-10,tw+16,16,4);ctx.stroke();
             ctx.fillStyle='#f85149';ctx.textAlign='right';
-            ctx.fillText(lbl,pillX,py2+2);
+            ctx.fillText(lbl,pillX,py2+3);
+            ctx.restore();
+          } else if(ly>ca.bottom&&liqRight>ca.left){
+            // LIQ is below visible chart area — pin a label bar at the bottom edge
+            ctx.save();
+            // Thin red bar at the very bottom
+            ctx.fillStyle='rgba(248,81,73,0.25)';
+            ctx.fillRect(ca.left,ca.bottom-4,liqRight-ca.left,4);
+            // Pill label pinned to bottom-left with down arrow
+            ctx.font='bold 10px monospace';
+            const lblPin='☠ LIQ  $'+Math.round(liqPx/1000)+'K  ↓';
+            const tw2=ctx.measureText(lblPin).width;
+            const pillX2=ca.left+tw2+16;
+            const py3=ca.bottom-10;
+            ctx.fillStyle='rgba(248,81,73,0.22)';
+            ctx.beginPath();ctx.roundRect(ca.left+4,py3-10,tw2+16,16,4);ctx.fill();
+            ctx.strokeStyle='rgba(248,81,73,0.65)';ctx.lineWidth=1;
+            ctx.beginPath();ctx.roundRect(ca.left+4,py3-10,tw2+16,16,4);ctx.stroke();
+            ctx.fillStyle='#f85149';ctx.textAlign='left';
+            ctx.fillText(lblPin,ca.left+12,py3+3);
             ctx.restore();
           }
         }
@@ -9425,13 +9441,6 @@ function updateMilli(){
           },
           yR:{
             type:'linear',position:'right',
-            // afterFit ensures LIQ price stays visible even after zoom recalculates the axis
-            afterFit(scale){
-              if(liqPx>500){
-                const minNeeded=Math.floor(liqPx*0.75/5000)*5000;
-                if(scale.min>minNeeded) scale.min=minNeeded;
-              }
-            },
             title:{display:true,text:'BTC Price',color:'#6b7280',font:{size:10,family:"'JetBrains Mono',monospace"}},
             ticks:{color:'#6b7280',callback:v=>'$'+Math.round(v/1000)+'K',maxTicksLimit:6,font:{size:9}},
             grid:{display:false}
