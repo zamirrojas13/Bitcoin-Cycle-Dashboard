@@ -253,6 +253,12 @@ hr.sep{border:none;border-top:1px solid #21262d;margin:16px 0;}
 .mgsr{background:#161b22;border:1px solid #21262d;border-radius:6px;padding:7px 12px;flex:1;min-width:100px;text-align:center;}
 .mgsr-lbl{font-size:9px;color:#8b949e;text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px;}
 .mgsr-val{font-size:13px;font-weight:700;font-family:'JetBrains Mono',monospace;}
+.milli-chart-toggle{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;}
+.mct-btn{background:#161b22;border:1px solid #30363d;border-radius:6px;color:#6b7280;font-size:10px;font-family:'JetBrains Mono',monospace;padding:5px 11px;cursor:pointer;transition:all .15s;letter-spacing:.03em;}
+.mct-btn:hover{border-color:#58a6ff;color:#e6edf3;}
+.mct-active{border-color:#58a6ff!important;color:#e6edf3!important;background:rgba(88,166,255,0.08)!important;}
+.mct-bear.mct-active{border-color:#f85149!important;color:#f85149!important;background:rgba(248,81,73,0.07)!important;}
+.mct-bull.mct-active{border-color:#3fb950!important;color:#3fb950!important;background:rgba(63,185,80,0.07)!important;}
 .milli-phase-legend{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;justify-content:center;padding-top:8px;border-top:1px solid #21262d;}
 .mpl-item{display:flex;align-items:center;gap:5px;font-size:9px;color:#8b949e;font-family:'JetBrains Mono',monospace;letter-spacing:.03em;}
 .mpl-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
@@ -777,6 +783,7 @@ hr.sep{border:none;border-top:1px solid #21262d;margin:16px 0;}
     <div class="milli-section-hdr">&#128200; C5 Trade Journey — Portfolio &amp; BTC Over Time</div>
     <div class="milli-gc-wrap">
       <div class="milli-gc-stat-row" id="milliGcStats"><!-- JS --></div>
+      <div class="milli-chart-toggle" id="milliChartToggle"><!-- JS --></div>
       <canvas id="milliGrowthCanvas" style="max-height:440px;"></canvas>
       <div class="milli-phase-legend" id="milliPhaseLegend"><!-- JS --></div>
     </div>
@@ -9083,6 +9090,34 @@ function updateMilli(){
       portArr.push(Math.round(v));
     }
 
+    // ── Scenario path generator ──────────────────────────────────────
+    function makeScenPaths(sBot,sBotMs,sH5Mult,sTop,sAthMs){
+      const sH5Px=Math.min(sBot*sH5Mult,126000*1.06);
+      const sPost=sTop*0.70;
+      function sBtcAt(ms){
+        const span=endMs-nowMs,t=Math.max(0,Math.min(1,(ms-nowMs)/span));
+        const tB=(sBotMs-nowMs)/span,tH=(h5Ms-nowMs)/span,tA=(sAthMs-nowMs)/span;
+        if(t<=tB){const f=t/tB;return price+(sBot-price)*ss(f);}
+        else if(t<=tH){const f=(t-tB)/(tH-tB);return sBot+(sH5Px-sBot)*Math.sqrt(f);}
+        else if(t<=tA){const f=(t-tH)/(tA-tH);return sH5Px+(sTop-sH5Px)*(1-(1-f)*(1-f));}
+        else{const f=Math.min(1,(t-tA)/(1-tA));return sTop+(sPost-sTop)*ss(f);}
+      }
+      const bArr=tsArr.map(d=>Math.round(sBtcAt(nowMs+d*86400000)));
+      {const mi=bArr.indexOf(Math.min(...bArr));bArr[mi]=sBot;}
+      const pArr=[]; const ent=new Set(); let rm2=bArr[0];
+      for(let i=0;i<=N;i++){
+        const P=bArr[i]; rm2=Math.min(rm2,P);
+        TIERS.forEach((t,idx)=>{if(!ent.has(idx)&&t.contracts>0&&rm2<=t.price)ent.add(idx);});
+        let v=capital; ent.forEach(idx=>{const t=TIERS[idx];v+=t.contracts*0.01*(P-t.price);});
+        pArr.push(Math.round(v));
+      }
+      return{bArr,pArr};
+    }
+    // Bear: $35K bottom (log-compression ×0.48 of C4 gain → $155K ATH)
+    const bearS=makeScenPaths(35000,new Date('2026-12-01').getTime(),2.6,155000,new Date('2030-04-01').getTime());
+    // Bull: same bottom, $380K ATH (power-law upper band, ETF supercycle)
+    const bullS=makeScenPaths(bottom,botMs,3.0,380000,new Date('2029-06-01').getTime());
+
     // ── Derived key-point stats ───────────────────────────────────────
     const msToDay = ms=>Math.round((ms-nowMs)/86400000);
     const idx  = ms=>Math.min(N,Math.max(0,Math.round(N*(ms-nowMs)/(endMs-nowMs))));
@@ -9258,6 +9293,32 @@ function updateMilli(){
             borderWidth:1.5,
             borderColor:'rgba(255,255,255,0.13)',
             fill:false
+          },
+          // ds 2 — Bear case portfolio ($35K bottom → $155K ATH, all 4 tiers fire)
+          {
+            label:'📉 Bear $155K',
+            data:bearS.pArr.map((y,i)=>({x:tsArr[i],y})),
+            yAxisID:'yL',
+            tension:0.35,
+            pointRadius:0,
+            borderWidth:2,
+            borderColor:'rgba(248,81,73,0.8)',
+            borderDash:[6,3],
+            fill:false,
+            hidden:true
+          },
+          // ds 3 — Bull case portfolio (same bottom → $380K ATH, power-law upper band)
+          {
+            label:'🚀 Bull $380K',
+            data:bullS.pArr.map((y,i)=>({x:tsArr[i],y})),
+            yAxisID:'yL',
+            tension:0.35,
+            pointRadius:0,
+            borderWidth:2,
+            borderColor:'rgba(63,185,80,0.8)',
+            borderDash:[6,3],
+            fill:false,
+            hidden:true
           }
         ]
       },
@@ -9280,21 +9341,18 @@ function updateMilli(){
               },
               beforeBody:()=>['─────────────────────────'],
               label:item=>{
-                if(item.datasetIndex===0){
-                  const v=item.parsed.y;
-                  const pnl=Math.round(v-capital);
-                  const pct=capital>0?((v-capital)/capital*100).toFixed(1):0;
-                  const ps=pnl>=0?'+':'-';
-                  const cs=+pct>=0?'+':'';
-                  return [
-                    `Portfolio   $${Math.round(v).toLocaleString()}`,
-                    `P&L         ${ps}$${Math.abs(pnl).toLocaleString()}  (${cs}${pct}%)`
-                  ];
-                }
-                return `BTC Price   $${Math.round(item.parsed.y).toLocaleString()}`;
+                const v=item.parsed.y,di=item.datasetIndex;
+                if(di===1) return `BTC Path    $${Math.round(v).toLocaleString()}`;
+                const pnl=Math.round(v-capital),pct=capital>0?((v-capital)/capital*100).toFixed(1):0;
+                const ps=pnl>=0?'+':'-',cs=+pct>=0?'+':'';
+                const names=['Your Plan','—','📉 Bear','🚀 Bull'];
+                return[`${names[di]||''}   $${Math.round(v).toLocaleString()}`,
+                       `P&L  ${ps}$${Math.abs(pnl).toLocaleString()}  (${cs}${pct}%)`];
               },
               afterBody:items=>{
-                const i=items[0].dataIndex;
+                const base=items.find(it=>it.datasetIndex===0);
+                if(!base) return[];
+                const i=base.dataIndex;
                 const P=btcArr[i];
                 const ms2=nowMs+items[0].parsed.x*86400000;
                 const lines=['─────────────────────────'];
@@ -9350,9 +9408,27 @@ function updateMilli(){
       },
       plugins:[tlPlugin]
     });
+
+    // ── Toggle buttons ────────────────────────────────────────────────
+    const togEl=document.getElementById('milliChartToggle');
+    if(togEl) togEl.innerHTML=`
+      <button class="mct-btn mct-active" onclick="window.toggleMilliLine(0,this)">💼 Your Plan ($${Math.round(top/1000)}K)</button>
+      <button class="mct-btn mct-active" onclick="window.toggleMilliLine(1,this)">👻 BTC Path</button>
+      <button class="mct-btn mct-bear" onclick="window.toggleMilliLine(2,this)">📉 Bear Case ($155K)</button>
+      <button class="mct-btn mct-bull" onclick="window.toggleMilliLine(3,this)">🚀 Bull Case ($380K)</button>`;
   })();
 }
 updateMilli();
+
+window.toggleMilliLine=function(dsIdx,btn){
+  const chart=Chart.getChart('milliGrowthCanvas');
+  if(!chart) return;
+  const ds=chart.data.datasets[dsIdx];
+  if(!ds) return;
+  ds.hidden=!ds.hidden;
+  chart.update('none');
+  btn.classList.toggle('mct-active');
+};
 
 // ── AUTO-PATCH HISTORICAL DATA FROM BINANCE ──────────────────────────
 async function patchHistoricalData(){
