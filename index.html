@@ -8694,7 +8694,10 @@ function setMilliTiers(n,btn){
 
 function updateMilli(){
   const capital    = parseFloat(document.getElementById('milliCapital').value)||10000;
-  const reserve    = Math.max(0,parseFloat(document.getElementById('milliReserve')?.value)||0);
+  const rawReserve = Math.max(0,parseFloat(document.getElementById('milliReserve')?.value)||0);
+  // Auto-clamp reserve — can never exceed capital (silent DOM update, no re-trigger)
+  if(rawReserve>=capital){ const el=document.getElementById('milliReserve'); if(el) el.value=Math.floor(capital*0.9); }
+  const reserve    = Math.min(rawReserve,capital>0?capital-1:0);
   const deployable = Math.max(0,capital-reserve);
   const bottom     = parseFloat(document.getElementById('milliBottom').value)||47000;
   const top        = parseFloat(document.getElementById('milliTop').value)||280000;
@@ -8771,7 +8774,6 @@ function updateMilli(){
   const portfolio     = capital+totalPnL; // capital (reserve+deployed) + trading profit
   const roi           = totalMargin>0?totalPnL/totalMargin:0;
   const roiTotal      = capital>0?totalPnL/capital:0;
-  const reserveExceedsCapital = reserve>=capital;
 
   // Account-level liquidation (all tiers open at same time)
   // Liq when: reserve + totalInitMgn + totalUnrealizedPnL = 0.5 × totalInitMgn
@@ -8860,9 +8862,7 @@ function updateMilli(){
   document.getElementById('milliProfit').textContent     = '+$'+Math.round(tradingProfit).toLocaleString();
   document.getElementById('milliROILine').textContent    = roiTotal.toFixed(1)+'× on total · '+roi.toFixed(1)+'× on deployed';
   const tierLabels={1:'1-buy (all-in at bottom)',2:'2-buy (T3+T4)',3:'3-buy (T2–T4)',4:'4-buy (T1–T4)'};
-  document.getElementById('milliCapHint').textContent    = reserveExceedsCapital
-    ?`⚠️ Reserve ($${Math.round(reserve).toLocaleString()}) exceeds capital — $0 deployable`
-    :reserve>0
+  document.getElementById('milliCapHint').textContent    = reserve>0
     ?`Deploying $${Math.round(deployable).toLocaleString()} · $${Math.round(reserve).toLocaleString()} reserved`
     :`Split across ${tierCount} ${tierCount===1?'entry':'entries'} · ${tierLabels[tierCount]}`;
   document.getElementById('milliTiersHint').textContent  = tierCount===4
@@ -8876,20 +8876,12 @@ function updateMilli(){
   // Hero
   const heroNumEl = document.getElementById('milliHeroNum');
   const heroRoiEl = document.getElementById('milliHeroRoi');
-  if(reserveExceedsCapital){
-    heroNumEl.textContent = '$'+Math.round(capital).toLocaleString();
-    heroNumEl.style.color = '#d29922';
-    heroRoiEl.textContent = '⚠️ Reserve exceeds capital — nothing to deploy';
-    heroRoiEl.style.color = '#d29922';
-    document.getElementById('milliHeroSub').textContent = 'Lower reserve below $'+Math.round(capital).toLocaleString()+' to enable trading';
-  } else {
-    heroNumEl.textContent = '$'+Math.round(portfolio).toLocaleString();
-    heroNumEl.style.color = '';
-    const profitSign = tradingProfit>=0?'+':'-';
-    heroRoiEl.textContent = profitSign+roiTotal.toFixed(1)+'× total · $'+Math.round(Math.abs(tradingProfit)).toLocaleString()+' profit';
-    heroRoiEl.style.color = tradingProfit>0?'#3fb950':'#8b949e';
-    document.getElementById('milliHeroSub').textContent = totalBTC.toFixed(2)+' BTC exposure · '+totalContracts+' BIT contracts'+(reserve>0?' · $'+Math.round(reserve).toLocaleString()+' reserve':'');
-  }
+  heroNumEl.textContent = '$'+Math.round(portfolio).toLocaleString();
+  heroNumEl.style.color = '';
+  const profitSign = tradingProfit>=0?'+':'-';
+  heroRoiEl.textContent = profitSign+roiTotal.toFixed(1)+'× total · $'+Math.round(Math.abs(tradingProfit)).toLocaleString()+' profit';
+  heroRoiEl.style.color = tradingProfit>0?'#3fb950':'#8b949e';
+  document.getElementById('milliHeroSub').textContent = totalBTC.toFixed(2)+' BTC exposure · '+totalContracts+' BIT contracts'+(reserve>0?' · $'+Math.round(reserve).toLocaleString()+' reserve':'');
 
   // Account-level liquidation analysis box
   const liqNR  = acctLiqNoRes>0?'$'+Math.round(acctLiqNoRes).toLocaleString():'< $0 (safe)';
@@ -9237,14 +9229,15 @@ function updateMilli(){
             ctx.strokeStyle='rgba(248,81,73,0.65)';ctx.setLineDash([5,3]);ctx.lineWidth=1.5;
             ctx.beginPath();ctx.moveTo(ca.left,ly);ctx.lineTo(liqRight,ly);ctx.stroke();
             ctx.setLineDash([]);
-            // Single pill label — float at 25% of line width from the left, avoids tier-line crowding
+            // Single pill label — float at 25% of line width, avoid Capital baseline text
             const lbl='☠ LIQ  $'+Math.round(liqPx/1000)+'K';
             ctx.font='bold 9px monospace';
             const tw=ctx.measureText(lbl).width;
             const lineW=liqRight-ca.left;
-            // Position: 25% along the line but ensure it fits
             const pillX=Math.min(ca.left+lineW*0.25+tw+10, liqRight-4);
-            const py2=ly;
+            // Offset vertically if too close to the Capital baseline label
+            const capitalPy=yL.getPixelForValue(capital);
+            const py2=Math.abs(ly-capitalPy)<16 ? ly-16 : ly;
             ctx.fillStyle='rgba(248,81,73,0.18)';
             ctx.beginPath();ctx.roundRect(pillX-tw-10,py2-9,tw+14,14,4);ctx.fill();
             ctx.strokeStyle='rgba(248,81,73,0.55)';ctx.lineWidth=1;
@@ -9434,6 +9427,8 @@ function updateMilli(){
           },
           yR:{
             type:'linear',position:'right',
+            // Ensure LIQ price is always visible — set min 25% below LIQ price
+            min: liqPx>500 ? Math.floor(liqPx*0.75/5000)*5000 : undefined,
             title:{display:true,text:'BTC Price',color:'#6b7280',font:{size:10,family:"'JetBrains Mono',monospace"}},
             ticks:{color:'#6b7280',callback:v=>'$'+Math.round(v/1000)+'K',maxTicksLimit:6,font:{size:9}},
             grid:{display:false}
