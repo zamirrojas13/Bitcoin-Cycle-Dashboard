@@ -9087,7 +9087,7 @@ function updateMilli(){
       TIERS.forEach((t,idx)=>{ if(!entered.has(idx)&&t.contracts>0&&runMin<=t.price) entered.add(idx); });
       let v=capital;
       entered.forEach(idx=>{ const t=TIERS[idx]; v+=t.contracts*0.01*(P-t.price); });
-      portArr.push(Math.round(v));
+      portArr.push(Math.max(0,Math.round(v)));
     }
 
     // ── Scenario path generator ──────────────────────────────────────
@@ -9109,7 +9109,7 @@ function updateMilli(){
         const P=bArr[i]; rm2=Math.min(rm2,P);
         TIERS.forEach((t,idx)=>{if(!ent.has(idx)&&t.contracts>0&&rm2<=t.price)ent.add(idx);});
         let v=capital; ent.forEach(idx=>{const t=TIERS[idx];v+=t.contracts*0.01*(P-t.price);});
-        pArr.push(Math.round(v));
+        pArr.push(Math.max(0,Math.round(v)));
       }
       return{bArr,pArr};
     }
@@ -9393,7 +9393,7 @@ function updateMilli(){
             grid:{color:'rgba(33,38,45,0.5)'}
           },
           yL:{
-            type:'linear',position:'left',
+            type:'linear',position:'left',min:0,
             title:{display:true,text:'Portfolio ($)',color:'#8b949e',font:{size:10,family:"'JetBrains Mono',monospace"}},
             ticks:{color:'#8b949e',callback:v=>v>=1e6?'$'+(v/1e6).toFixed(1)+'M':'$'+Math.round(v/1000)+'K',maxTicksLimit:6,font:{size:9}},
             grid:{color:'rgba(33,38,45,0.5)'}
