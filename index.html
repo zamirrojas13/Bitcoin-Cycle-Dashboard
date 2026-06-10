@@ -248,6 +248,11 @@ hr.sep{border:none;border-top:1px solid #21262d;margin:16px 0;}
 .alc-sub{font-size:10px;color:#6b7280;margin-top:3px;line-height:1.4;}
 
 .milli-section-hdr{font-size:12px;font-weight:700;color:#58a6ff;text-transform:uppercase;letter-spacing:.07em;padding:18px 0 10px;border-bottom:1px solid #21262d;margin-bottom:14px;}
+.milli-gc-wrap{background:#0d1117;border:1px solid #21262d;border-radius:8px;padding:14px 10px 10px;margin-bottom:14px;}
+.milli-gc-stat-row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;}
+.mgsr{background:#161b22;border:1px solid #21262d;border-radius:6px;padding:7px 12px;flex:1;min-width:100px;text-align:center;}
+.mgsr-lbl{font-size:9px;color:#8b949e;text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px;}
+.mgsr-val{font-size:13px;font-weight:700;font-family:'JetBrains Mono',monospace;}
 
 .milli-tier-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-bottom:22px;}
 .milli-tier-card{background:#161b22;border:1px solid #21262d;border-radius:10px;padding:15px;position:relative;overflow:hidden;}
@@ -763,6 +768,13 @@ hr.sep{border:none;border-top:1px solid #21262d;margin:16px 0;}
         <div class="mpc-val g" id="milliProfit">—</div>
         <div class="mpc-sub" id="milliROILine">— ROI</div>
       </div>
+    </div>
+
+    <!-- GROWTH CURVE CHART -->
+    <div class="milli-section-hdr">&#128200; Trade Growth Curve — Portfolio vs BTC Price</div>
+    <div class="milli-gc-wrap">
+      <div class="milli-gc-stat-row" id="milliGcStats"><!-- JS --></div>
+      <canvas id="milliGrowthCanvas" style="max-height:320px;"></canvas>
     </div>
 
     <!-- SCENARIOS TABLE -->
@@ -8705,6 +8717,8 @@ function updateMilli(){
     const pnl        = (top-t.price)*0.01*contracts;
     const dist       = price-t.price;
     const status     = t.price>=price?'fired':(dist<6000?'close':'waiting');
+    // Store for growth chart
+    t.contracts = contracts; t.entryPrice = t.price;
     const statusLbl  = t.price>=price?'&#10003; FIRED':(status==='close'?'CLOSE':'WAITING');
 
     totalMargin   += marginReq;
@@ -8994,6 +9008,146 @@ function updateMilli(){
   const exPnL=Math.round((top-bottom)*0.01*exC);
   document.getElementById('cfmExample').textContent=
     `Tier 4 example:\n${exC} contracts @ $${bottom.toLocaleString()} entry\nExit @ $${(top/1000).toFixed(0)}K target\n= +$${exPnL.toLocaleString()} profit on Tier 4 alone`;
+
+  // ── GROWTH CURVE CHART ─────────────────────────────────────────────
+  (function buildGrowthChart(){
+    const canvas=document.getElementById('milliGrowthCanvas');
+    if(!canvas) return;
+
+    // Portfolio value at any BTC price P (all positions entered at their tier prices)
+    // This models: entries executed on the way down, now tracking recovery to target
+    function portVal(P){
+      let v=capital;
+      TIERS.forEach(t=>{if(t.contracts>0) v+=t.contracts*0.01*(P-t.price);});
+      return Math.max(-capital*2, v); // floor at -2× capital for chart readability
+    }
+
+    const liqPx = acctLiqWRes>500?acctLiqWRes:0;
+    const lowestEntry = TIERS.filter(t=>t.contracts>0).reduce((m,t)=>Math.min(m,t.price),Infinity);
+    const xMin  = Math.max(500, liqPx>0?liqPx*0.45:(lowestEntry>0?lowestEntry*0.35:bottom*0.35));
+    const xMax  = top*1.12;
+    const fmtK  = v=>v>=1e6?'$'+(v/1e6).toFixed(2)+'M':'$'+(v/1000).toFixed(0)+'K';
+
+    // Build X array: 280 uniform points + all key prices inserted
+    const keyPx=[liqPx,bottom,price,top,...TIERS.filter(t=>t.contracts>0).map(t=>t.price)].filter(v=>v>xMin&&v<xMax);
+    const N=280;const step=(xMax-xMin)/N;
+    const xs=new Set();
+    for(let i=0;i<=N;i++) xs.add(xMin+i*step);
+    keyPx.forEach(k=>xs.add(k));
+    const xArr=[...xs].sort((a,b)=>a-b);
+    const chartData=xArr.map(x=>({x,y:portVal(x)}));
+
+    // Stat bar
+    const portAtTarget=portVal(top);
+    const portAtBottom=portVal(bottom);
+    const portAtLiq=liqPx>0?portVal(liqPx):null;
+    const mult=capital>0?portAtTarget/capital:0;
+    const gcStats=document.getElementById('milliGcStats');
+    const liqColor=liqPx>0?'#f85149':'#3fb950';
+    gcStats.innerHTML=`
+      <div class="mgsr"><div class="mgsr-lbl">At bottom (${fmtK(bottom)})</div><div class="mgsr-val" style="color:${portAtBottom>=capital?'#3fb950':'#d29922'}">${fmtK(portAtBottom)}</div></div>
+      <div class="mgsr"><div class="mgsr-lbl">At target (${fmtK(top)})</div><div class="mgsr-val" style="color:#3fb950">${fmtK(portAtTarget)}</div></div>
+      <div class="mgsr"><div class="mgsr-lbl">Growth multiple</div><div class="mgsr-val" style="color:#3fb950">${mult.toFixed(1)}×</div></div>
+      ${liqPx>0?`<div class="mgsr"><div class="mgsr-lbl">Liq price</div><div class="mgsr-val" style="color:${liqColor}">${fmtK(liqPx)}</div></div>`:'<div class="mgsr"><div class="mgsr-lbl">Liquidation</div><div class="mgsr-val" style="color:#3fb950">Protected</div></div>'}
+      <div class="mgsr"><div class="mgsr-lbl">Break-even price</div><div class="mgsr-val" style="color:#8b949e">${avgEntry>0?fmtK(avgEntry):'—'}</div></div>`;
+
+    // Custom annotation plugin (vertical lines + capital baseline)
+    const annotPlugin={
+      id:'mgAnnot',
+      afterDraw(chart){
+        const {ctx,chartArea:ca,scales:{x:xsc,y:ysc}}=chart;
+        // Capital baseline
+        const cpy=ysc.getPixelForValue(capital);
+        if(cpy>=ca.top&&cpy<=ca.bottom){
+          ctx.save();ctx.strokeStyle='rgba(139,148,158,0.3)';ctx.setLineDash([2,6]);ctx.lineWidth=1;
+          ctx.beginPath();ctx.moveTo(ca.left,cpy);ctx.lineTo(ca.right,cpy);ctx.stroke();
+          ctx.fillStyle='#6b7280';ctx.font='9px monospace';ctx.textAlign='left';ctx.setLineDash([]);
+          ctx.fillText('Capital $'+Math.round(capital/1000)+'K',ca.left+4,cpy-4);
+          ctx.restore();
+        }
+        // Vertical annotation lines
+        const ann=chart.options.plugins.mgAnnot?.lines||[];
+        ann.forEach(a=>{
+          const px=xsc.getPixelForValue(a.v);
+          if(px<ca.left||px>ca.right) return;
+          ctx.save();
+          ctx.strokeStyle=a.color;ctx.setLineDash(a.dash||[4,4]);ctx.lineWidth=a.w||1;
+          ctx.beginPath();ctx.moveTo(px,ca.top);ctx.lineTo(px,ca.bottom);ctx.stroke();
+          if(a.lbl){
+            ctx.fillStyle=a.color;ctx.font='bold 9px JetBrains Mono,monospace';
+            ctx.textAlign='center';ctx.setLineDash([]);
+            ctx.fillText(a.lbl,px,ca.top+(a.top||12));
+          }
+          ctx.restore();
+        });
+      }
+    };
+
+    // Build annotation lines
+    const lines=[];
+    TIERS.filter(t=>t.contracts>0).forEach((t,i)=>{
+      lines.push({v:t.price,color:'rgba(88,166,255,0.4)',lbl:'T'+(i+1),dash:[3,4],w:1,top:22+i*12});
+    });
+    if(avgEntry>0&&avgEntry>xMin&&avgEntry<xMax){
+      lines.push({v:avgEntry,color:'rgba(139,148,158,0.5)',lbl:'BEP',dash:[2,5],w:1,top:12});
+    }
+    if(liqPx>0) lines.push({v:liqPx,color:'rgba(248,81,73,0.8)',lbl:'LIQ',dash:[4,3],w:1.5,top:12});
+    if(price>xMin&&price<xMax) lines.push({v:price,color:'rgba(139,148,158,0.45)',lbl:'NOW',dash:[2,5],w:1,top:36});
+    lines.push({v:top,color:'rgba(63,185,80,0.75)',lbl:'TARGET',dash:[4,3],w:1.5,top:12});
+
+    const ex=Chart.getChart('milliGrowthCanvas');
+    if(ex) ex.destroy();
+
+    new Chart(canvas.getContext('2d'),{
+      type:'line',
+      data:{datasets:[{
+        label:'Portfolio',
+        data:chartData,
+        tension:0,
+        pointRadius:0,
+        borderWidth:2.5,
+        fill:false,
+        segment:{borderColor:ctx=>{
+          const p=ctx.p0.parsed.x;
+          if(liqPx>0&&p<=liqPx*1.02) return '#f85149';
+          if(p<=bottom) return '#e3b341';
+          if(p>=top*0.97) return '#3fb950';
+          return '#58a6ff';
+        }}
+      }]},
+      options:{
+        responsive:true,
+        animation:false,
+        interaction:{mode:'index',intersect:false},
+        plugins:{
+          legend:{display:false},
+          tooltip:{
+            backgroundColor:'#161b22',borderColor:'#30363d',borderWidth:1,
+            titleColor:'#8b949e',bodyColor:'#e6edf3',
+            callbacks:{
+              title:items=>'BTC: '+fmtK(items[0].parsed.x),
+              label:item=>'Portfolio: $'+Math.round(item.parsed.y).toLocaleString()+
+                (capital>0?' ('+((item.parsed.y/capital)).toFixed(2)+'×)':'')
+            }
+          },
+          mgAnnot:{lines}
+        },
+        scales:{
+          x:{type:'linear',
+            title:{display:true,text:'BTC Price',color:'#8b949e',font:{size:10,family:"'JetBrains Mono',monospace"}},
+            ticks:{color:'#8b949e',callback:v=>fmtK(v),maxTicksLimit:8,font:{size:9}},
+            grid:{color:'rgba(33,38,45,0.8)'}
+          },
+          y:{
+            title:{display:true,text:'Portfolio Value',color:'#8b949e',font:{size:10,family:"'JetBrains Mono',monospace"}},
+            ticks:{color:'#8b949e',callback:v=>'$'+Math.round(v/1000)+'K',maxTicksLimit:6,font:{size:9}},
+            grid:{color:'rgba(33,38,45,0.8)'}
+          }
+        }
+      },
+      plugins:[annotPlugin]
+    });
+  })();
 }
 updateMilli();
 
