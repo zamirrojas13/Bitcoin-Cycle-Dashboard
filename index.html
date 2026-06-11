@@ -9201,6 +9201,12 @@ function updateMilli(){
       const prev=echarts.getInstanceByDom(el1);if(prev)prev.dispose();
       const c1=echarts.init(el1,null,{renderer:'canvas'});
 
+      // Clip to 1Y bear phase so BTC right axis auto-scales to bear range only
+      const c1Cutoff=tsArr.reduce((last,d,i)=>d<=365?i:last,0);
+      const c1ts=tsArr.slice(0,c1Cutoff+1);
+      const c1btc=btcArr.slice(0,c1Cutoff+1);
+      const c1port=portArr.slice(0,c1Cutoff+1);
+
       const yRMin=liqPx>500?Math.floor(liqPx*0.90/5000)*5000:'auto';
 
       const c1ML=[
@@ -9276,11 +9282,11 @@ function updateMilli(){
         visualMap:{show:false,type:'piecewise',seriesIndex:0,dimension:1,
           pieces:[{lte:capital*0.6,color:'#f85149'},{gt:capital*0.6,lte:capital,color:'#e3b341'},{gt:capital,lte:capital*4,color:'#58a6ff'},{gt:capital*4,color:'#3fb950'}]},
         series:[
-          {name:'Portfolio',type:'line',yAxisIndex:0,data:portArr.map((y,i)=>[tsArr[i],y]),
+          {name:'Portfolio',type:'line',yAxisIndex:0,data:c1port.map((y,i)=>[c1ts[i],y]),
            smooth:0.35,symbol:'none',lineStyle:{width:2.5},
            areaStyle:{color:{type:'linear',x:0,y:0,x2:0,y2:1,colorStops:[{offset:0,color:'rgba(88,166,255,0.09)'},{offset:1,color:'rgba(88,166,255,0)'}]}},
            markLine:{silent:true,symbol:'none',lineStyle:{type:'dashed',width:1},label:{show:false},data:c1ML}},
-          {name:'BTC Price',type:'line',yAxisIndex:1,data:btcArr.map((y,i)=>[tsArr[i],y]),
+          {name:'BTC Price',type:'line',yAxisIndex:1,data:c1btc.map((y,i)=>[c1ts[i],y]),
            smooth:0.35,symbol:'none',lineStyle:{color:'rgba(255,255,255,0.13)',width:1.5},
            markLine:btcML.length?{silent:true,symbol:'none',data:btcML}:undefined}
         ]
@@ -9303,6 +9309,11 @@ function updateMilli(){
       const c2=echarts.init(el2,null,{renderer:'canvas'});
       window._milliProfitChart=c2;
       window._milliProfitVis=window._milliProfitVis||[true,false,false];
+      window._milliProfitData=[
+        portArr.map((y,i)=>[tsArr[i],y]),
+        bearS.pArr.map((y,i)=>[tsArr[i],y]),
+        bullS.pArr.map((y,i)=>[tsArr[i],y])
+      ];
 
       const c2ML=[
         {xAxis:0,lineStyle:{color:'rgba(139,148,158,0.35)',type:'dashed',width:1.5},
@@ -9354,15 +9365,18 @@ function updateMilli(){
         visualMap:{show:false,type:'piecewise',seriesIndex:0,dimension:1,
           pieces:[{lte:capital*0.6,color:'#f85149'},{gt:capital*0.6,lte:capital,color:'#e3b341'},{gt:capital,lte:capital*4,color:'#58a6ff'},{gt:capital*4,color:'#3fb950'}]},
         series:[
-          {name:'Your Plan',type:'line',show:window._milliProfitVis[0],
-           data:portArr.map((y,i)=>[tsArr[i],y]),smooth:0.35,symbol:'none',lineStyle:{width:2.5},
-           areaStyle:{color:{type:'linear',x:0,y:0,x2:0,y2:1,colorStops:[{offset:0,color:'rgba(88,166,255,0.1)'},{offset:1,color:'rgba(88,166,255,0)'}]}},
+          {name:'Your Plan',type:'line',
+           data:window._milliProfitVis[0]?portArr.map((y,i)=>[tsArr[i],y]):[],
+           smooth:0.35,symbol:'none',lineStyle:{width:2.5},
+           areaStyle:{color:{type:'linear',x:0,y:0,x2:0,y2:1,colorStops:[{offset:0,color:'rgba(88,166,255,0.12)'},{offset:1,color:'rgba(88,166,255,0)'}]}},
            markLine:{silent:true,symbol:'none',lineStyle:{type:'dashed'},label:{show:false},data:c2ML}},
-          {name:'Bear Case',type:'line',show:window._milliProfitVis[1],
-           data:bearS.pArr.map((y,i)=>[tsArr[i],y]),smooth:0.35,symbol:'none',
+          {name:'Bear Case',type:'line',
+           data:window._milliProfitVis[1]?bearS.pArr.map((y,i)=>[tsArr[i],y]):[],
+           smooth:0.35,symbol:'none',
            lineStyle:{color:'rgba(248,81,73,0.75)',width:1.8,type:'dashed'},itemStyle:{color:'rgba(248,81,73,0.75)'}},
-          {name:'Bull Case',type:'line',show:window._milliProfitVis[2],
-           data:bullS.pArr.map((y,i)=>[tsArr[i],y]),smooth:0.35,symbol:'none',
+          {name:'Bull Case',type:'line',
+           data:window._milliProfitVis[2]?bullS.pArr.map((y,i)=>[tsArr[i],y]):[],
+           smooth:0.35,symbol:'none',
            lineStyle:{color:'rgba(63,185,80,0.75)',width:1.8,type:'dashed'},itemStyle:{color:'rgba(63,185,80,0.75)'}}
         ]
       });
@@ -9406,8 +9420,9 @@ window.toggleMilliProfit=function(dsIdx,btn){
   if(!c||c.isDisposed()) return;
   window._milliProfitVis=window._milliProfitVis||[true,false,false];
   window._milliProfitVis[dsIdx]=!window._milliProfitVis[dsIdx];
+  const data=window._milliProfitData||[[],[],[]];
   const upd=[{},{},{}];
-  upd[dsIdx]={show:window._milliProfitVis[dsIdx]};
+  upd[dsIdx]={data:window._milliProfitVis[dsIdx]?data[dsIdx]:[]};
   c.setOption({series:upd},false);
   btn.classList.toggle('mct-active');
 };
