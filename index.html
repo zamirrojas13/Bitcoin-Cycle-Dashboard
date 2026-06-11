@@ -9176,8 +9176,15 @@ function updateMilli(){
     const minPort=Math.min(...portArr);
     const maxDD=capital>0?Math.round((capital-minPort)/capital*100):0;
 
+    // ── Warn if bottom is unreachable (above current BTC price) ─────
+    const bottomWarning = bottom >= price
+      ? `<div style="grid-column:1/-1;background:rgba(248,81,73,0.12);border:1px solid rgba(248,81,73,0.35);border-radius:6px;padding:8px 12px;color:#f85149;font-size:11px;font-family:JetBrains Mono,monospace;">
+          ⚠️ Bottom price ($${Math.round(bottom/1000)}K) is at or above current BTC price ($${Math.round(price/1000)}K) — no tiers will fire. Lower the expected bottom to see projections.
+         </div>` : '';
+
     // ── Stats row ─────────────────────────────────────────────────────
     document.getElementById('milliGcStats').innerHTML=`
+      ${bottomWarning}
       <div class="mgsr"><div class="mgsr-lbl">Bottom ${fmtMo(botMs)}</div><div class="mgsr-val" style="color:${portB>=capital?'#3fb950':'#f85149'}">${fmtK(portB)}</div></div>
       <div class="mgsr"><div class="mgsr-lbl">Break-even</div><div class="mgsr-val" style="color:#8b949e">${breakMs!==null?fmtMo(nowMs+breakMs*86400000):'N/A'}</div></div>
       <div class="mgsr"><div class="mgsr-lbl">H5 ${fmtMo(h5Ms)}</div><div class="mgsr-val" style="color:#d29922">${fmtK(portH)}</div></div>
@@ -9361,7 +9368,8 @@ function updateMilli(){
           splitLine:{lineStyle:{color:'rgba(33,38,45,0.5)'}},axisTick:{show:false},axisLine:{lineStyle:{color:'#21262d'}}},
         yAxis:{type:'value',name:'Portfolio Value ($)',nameTextStyle:{color:'#8b949e',fontSize:9,fontFamily:'monospace'},
           axisLabel:{color:'#8b949e',fontSize:9,fontFamily:'monospace',formatter:v=>v>=1e6?'$'+(v/1e6).toFixed(2)+'M':'$'+Math.round(v/1000)+'K'},
-          splitLine:{lineStyle:{color:'rgba(33,38,45,0.5)'}},axisTick:{show:false},axisLine:{show:false},min:0},
+          splitLine:{lineStyle:{color:'rgba(33,38,45,0.5)'}},axisTick:{show:false},axisLine:{show:false},
+          min:Math.max(0,Math.floor(minPort*0.85/1000)*1000)},
         visualMap:{show:false,type:'piecewise',seriesIndex:0,dimension:1,
           pieces:[{lte:capital*0.6,color:'#f85149'},{gt:capital*0.6,lte:capital,color:'#e3b341'},{gt:capital,lte:capital*4,color:'#58a6ff'},{gt:capital*4,color:'#3fb950'}]},
         series:[
