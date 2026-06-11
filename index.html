@@ -279,6 +279,8 @@ hr.sep{border:none;border-top:1px solid #21262d;margin:16px 0;}
 .mtb-waiting{background:rgba(139,148,158,.1);color:#8b949e;border:1px solid rgba(139,148,158,.3);}
 .mtb-close{background:rgba(210,153,34,.15);color:#d29922;border:1px solid rgba(210,153,34,.4);}
 .mtb-fired{background:rgba(63,185,80,.15);color:#3fb950;border:1px solid rgba(63,185,80,.4);}
+.mtc-skip::before{background:#30363d;}
+.mtb-skip{background:rgba(48,54,61,.3);color:#6b7280;border:1px solid rgba(48,54,61,.6);}
 .mtc-price{font-size:22px;font-weight:700;font-family:'JetBrains Mono',monospace;letter-spacing:-.4px;color:#f0f6fc;margin:8px 0 10px;}
 .mtc-rows{display:flex;flex-direction:column;gap:0;margin-bottom:8px;}
 .mtc-row{display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.04);}
@@ -8725,6 +8727,22 @@ function updateMilli(){
     return {...t, pct:pctNorm};
   });
 
+  // Store original normalized pcts for per-scenario redistribution
+  const _origPct = TIERS.map(t=>t.pct);
+  // Redistribute pct from tiers that won't fire (price < bottom) to those that will
+  const _firingPctSum = TIERS.reduce((s,t)=>t.price>=bottom?s+t.pct:s,0);
+  if(_firingPctSum>0&&_firingPctSum<100){
+    const firingTs=TIERS.filter(t=>t.price>=bottom);
+    let rem=100;
+    TIERS.forEach(t=>{
+      if(t.price<bottom){t.pct=0;return;}
+      const isLast=t===firingTs[firingTs.length-1];
+      const p=isLast?rem:Math.round(t.pct/_firingPctSum*100);
+      if(!isLast)rem-=p;
+      t.pct=p;
+    });
+  }
+
   let totalMargin=0,totalBTC=0,totalContracts=0,totalPnL=0,weightedEntry=0;
   let tierHTML='';
 
@@ -8740,10 +8758,11 @@ function updateMilli(){
     const marginReq  = contracts*tPrice*0.01/lev;
     const pnl        = (top-tPrice)*0.01*contracts;
     const dist       = price-tPrice;
-    const status     = tPrice>=price?'fired':(dist<6000?'close':'waiting');
+    const willFire   = tPrice>=bottom;
+    const status     = !willFire?'skip':(tPrice>=price?'fired':(dist<6000?'close':'waiting'));
     // Store for growth chart
     t.contracts = contracts; t.entryPrice = tPrice; t.price = tPrice;
-    const statusLbl  = tPrice>=price?'&#10003; FIRED':(status==='close'?'CLOSE':'WAITING');
+    const statusLbl  = !willFire?'&#8212; SKIPPED':(tPrice>=price?'&#10003; FIRED':(status==='close'?'CLOSE':'WAITING'));
     const isCustomP  = window.milliCustomPrices&&window.milliCustomPrices[t.n];
     const isCustomC  = window.milliCustomContracts&&window.milliCustomContracts[t.n]!==undefined;
 
@@ -8753,7 +8772,22 @@ function updateMilli(){
     totalPnL      += pnl;
     weightedEntry += btcExp*tPrice;
 
-    tierHTML+=`
+    if(!willFire){
+      tierHTML+=`
+    <div class="milli-tier-card mtc-skip" style="opacity:0.42;">
+      <div class="mtc-header">
+        <div><div class="mtc-num">Tier ${t.n} &middot; won't fire at $${Math.round(bottom/1000)}K bottom</div><div class="mtc-label">${t.label}</div></div>
+        <div class="mtc-badge mtb-skip">${statusLbl}</div>
+      </div>
+      <div style="font-size:22px;font-weight:700;color:#484f58;margin:8px 0 10px;">$${tPrice.toLocaleString()}</div>
+      <div class="mtc-rows">
+        <div class="mtc-row"><span class="mtc-rk">Entry price</span><span class="mtc-rv" style="color:#484f58;">$${tPrice.toLocaleString()}</span></div>
+        <div class="mtc-row"><span class="mtc-rk">BIT contracts</span><span class="mtc-rv" style="color:#484f58;">0 — capital redistributed</span></div>
+      </div>
+      <div class="mtc-note">BTC won't reach $${tPrice.toLocaleString()} at a $${Math.round(bottom).toLocaleString()} cycle bottom. This tier's capital flows to the active tiers above.</div>
+    </div>`;
+    } else {
+      tierHTML+=`
     <div class="milli-tier-card mtc-${status}">
       <div class="mtc-header">
         <div><div class="mtc-num">Tier ${t.n} &middot; ${t.pct}% of capital ($${Math.round(capital).toLocaleString()})</div><div class="mtc-label">${t.label}</div></div>
@@ -8783,6 +8817,7 @@ function updateMilli(){
       </div>
       <div class="mtc-note">${t.note}</div>
     </div>`;
+    }
   });
 
   document.getElementById('milliTierGrid').innerHTML=tierHTML;
@@ -8948,11 +8983,13 @@ function updateMilli(){
   ];
   let scHTML='';
   SCENARIOS.forEach(s=>{
+    const sfSum=TIERS.reduce((acc,t,i)=>t.price>=s.bot?acc+_origPct[i]:acc,0);
     let scPnL=0;
-    TIERS.forEach(t=>{
+    TIERS.forEach((t,i)=>{
       const ep=t.price;
-      if(ep<s.bot) return; // tier entry below scenario bottom — won't fire
-      const c=Math.max(0,Math.floor((deployable*t.pct/100*lev)/(ep*0.01)));
+      if(ep<s.bot)return;
+      const pEff=sfSum>0?_origPct[i]/sfSum*100:0;
+      const c=Math.max(0,Math.floor((deployable*pEff/100*lev)/(ep*0.01)));
       scPnL+=(s.tgt-ep)*0.01*c;
     });
     const scPort=capital+scPnL;
@@ -9124,6 +9161,15 @@ function updateMilli(){
 
     // ── Scenario path generator ──────────────────────────────────────
     function makeScenPaths(sBot,sBotMs,sH5Mult,sTop,sAthMs){
+      // Per-scenario redistribution: deploy 100% of capital through tiers that fire in this scenario
+      const sFiringSum=TIERS.reduce((s,t,i)=>t.price>=sBot?s+_origPct[i]:s,0);
+      const sContr=TIERS.map((t,i)=>{
+        if(t.price<sBot)return 0;
+        const pEff=sFiringSum>0?_origPct[i]/sFiringSum*100:0;
+        const ep=(window.milliCustomPrices&&window.milliCustomPrices[t.n])||t.price;
+        const cust=window.milliCustomContracts&&window.milliCustomContracts[t.n]!==undefined;
+        return cust?window.milliCustomContracts[t.n]:Math.max(0,Math.floor(deployable*pEff/100*lev/(ep*0.01)));
+      });
       const sH5Px=Math.min(sBot*sH5Mult,126000*1.06);
       const sPost=sTop*0.70;
       function sBtcAt(ms){
@@ -9139,8 +9185,8 @@ function updateMilli(){
       const pArr=[]; const ent=new Set(); let rm2=bArr[0];
       for(let i=0;i<=N;i++){
         const P=bArr[i]; rm2=Math.min(rm2,P);
-        TIERS.forEach((t,idx)=>{if(!ent.has(idx)&&t.contracts>0&&rm2<=t.price)ent.add(idx);});
-        let v=capital; ent.forEach(idx=>{const t=TIERS[idx];v+=t.contracts*0.01*(P-t.price);});
+        TIERS.forEach((t,idx)=>{if(!ent.has(idx)&&sContr[idx]>0&&rm2<=t.price)ent.add(idx);});
+        let v=capital; ent.forEach(idx=>{const t=TIERS[idx];v+=sContr[idx]*0.01*(P-t.price);});
         pArr.push(Math.max(0,Math.round(v)));
       }
       return{bArr,pArr};
