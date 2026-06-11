@@ -786,14 +786,14 @@ hr.sep{border:none;border-top:1px solid #21262d;margin:16px 0;}
     <div class="milli-section-hdr">&#128201; Bear Phase — Entry Journey &amp; LIQ Risk <span style="color:#8b949e;font-size:11px;font-weight:400;margin-left:8px;">1 Year View</span></div>
     <div class="milli-gc-wrap">
       <div class="milli-gc-stat-row" id="milliGcStats"><!-- JS --></div>
-      <canvas id="milliGrowthCanvas" style="max-height:380px;"></canvas>
+      <div id="milliGrowthCanvas" style="height:380px;width:100%;"></div>
       <div class="milli-phase-legend" id="milliPhaseLegend"><!-- JS --></div>
     </div>
 
     <div class="milli-section-hdr" style="margin-top:20px;">&#128640; Profit Projection — Bull Run to Target <span style="color:#8b949e;font-size:11px;font-weight:400;margin-left:8px;">Full Horizon</span></div>
     <div class="milli-gc-wrap">
       <div class="milli-chart-toggle" id="milliChartToggle"><!-- JS --></div>
-      <canvas id="milliProfitCanvas" style="max-height:380px;"></canvas>
+      <div id="milliProfitCanvas" style="height:380px;width:100%;"></div>
       <div class="milli-phase-legend" id="milliPhaseLegend2"><!-- JS --></div>
     </div>
 
@@ -870,6 +870,7 @@ hr.sep{border:none;border-top:1px solid #21262d;margin:16px 0;}
 </div><!-- /tab-milli -->
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/hammer.js/2.0.8/hammer.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-zoom/2.0.1/chartjs-plugin-zoom.min.js"></script>
 <script>
@@ -9185,21 +9186,201 @@ function updateMilli(){
       <div class="mgsr"><div class="mgsr-lbl">Hold</div><div class="mgsr-val" style="color:#8b949e">${holdMos} mo</div></div>
       <div class="mgsr"><div class="mgsr-lbl">Max drawdown</div><div class="mgsr-val" style="color:${maxDD>40?'#f85149':'#d29922'}">-${maxDD}%</div></div>`;
 
-    // ── Phase legend ──────────────────────────────────────────────────
-    const legEl=document.getElementById('milliPhaseLegend');
-    if(legEl) legEl.innerHTML=`
-      <span class="mpl-item"><span class="mpl-dot" style="background:#f85149"></span>Drawdown (entries fire)</span>
-      <span class="mpl-item"><span class="mpl-dot" style="background:#e3b341"></span>Underwater / recovery</span>
-      <span class="mpl-item"><span class="mpl-dot" style="background:#58a6ff"></span>Bull run</span>
-      <span class="mpl-item"><span class="mpl-dot" style="background:#3fb950"></span>ATH profit zone</span>
-      <span class="mpl-item"><span class="mpl-dot" style="background:rgba(210,147,34,0.9)"></span>H5 halving Apr '28</span>
-      <span class="mpl-item"><span class="mpl-dot" style="background:rgba(88,166,255,0.7)"></span>Tier entries</span>`;
+    // ── ECharts key days ──────────────────────────────────────────────
+    const botDay=msToDay(botMs),h5Day=msToDay(h5Ms),athDay=msToDay(athMs);
 
-    // ── Annotation plugin ─────────────────────────────────────────────
-    const tlPlugin={
-      id:'tlAnnot',
-      afterDraw(chart){
-        const {ctx,chartArea:ca,scales:{xA,yL,yR}}=chart;
+    // ── CHART 1: ECharts — Bear Entry Phase (1 Year) ─────────────────
+    const fmtDay=v=>{const d=new Date(nowMs+v*86400000);return MOS[d.getUTCMonth()]+" '"+String(d.getUTCFullYear()).slice(2);};
+    const tierEntryDays=TIERS.filter(t=>t.contracts>0).sort((a,b)=>b.price-a.price).map((t,i)=>{
+      for(let k=0;k<btcArr.length;k++){if(btcArr[k]<=t.price)return{n:t.n,day:tsArr[k],i};}
+      return null;
+    }).filter(Boolean);
+
+    const el1=document.getElementById('milliGrowthCanvas');
+    if(el1){
+      const prev=echarts.getInstanceByDom(el1);if(prev)prev.dispose();
+      const c1=echarts.init(el1,null,{renderer:'canvas'});
+
+      const yRMin=liqPx>500?Math.floor(liqPx*0.90/5000)*5000:'auto';
+
+      const c1ML=[
+        {yAxis:capital,lineStyle:{color:'rgba(139,148,158,0.22)',type:'dashed',width:1},
+         label:{show:true,formatter:'Capital $'+Math.round(capital/1000)+'K',color:'rgba(139,148,158,0.5)',position:'insideStartTop',fontSize:9,fontFamily:'monospace',distance:4}},
+        {xAxis:0,lineStyle:{color:'rgba(139,148,158,0.35)',type:'dashed',width:1.5},
+         label:{show:true,formatter:'NOW',color:'rgba(139,148,158,0.6)',position:'insideStartTop',fontWeight:'bold',fontSize:9,fontFamily:'monospace',distance:4}},
+        {xAxis:botDay,lineStyle:{color:'rgba(248,81,73,0.5)',type:'dashed',width:1.5},
+         label:{show:true,formatter:'BOT',color:'#f85149',position:'insideStartTop',fontWeight:'bold',fontSize:9,fontFamily:'monospace',distance:4}},
+        ...tierEntryDays.map((t,i)=>({
+          xAxis:t.day,
+          lineStyle:{color:'rgba(88,166,255,0.32)',type:'dashed',width:1},
+          label:{show:true,formatter:'T'+t.n,color:'rgba(88,166,255,0.85)',position:'insideStartTop',fontWeight:'bold',fontSize:9,fontFamily:'monospace',distance:i%2===0?4:18}
+        }))
+      ];
+
+      const btcML=liqPx>500?[{
+        yAxis:liqPx,
+        lineStyle:{color:'rgba(248,81,73,0.7)',type:'dashed',width:2},
+        label:{show:true,formatter:'☠ LIQ  $'+Math.round(liqPx/1000)+'K',color:'#f85149',position:'insideEndBottom',fontSize:10,fontFamily:'JetBrains Mono,monospace',fontWeight:'bold',backgroundColor:'rgba(248,81,73,0.18)',borderColor:'rgba(248,81,73,0.5)',borderWidth:1,borderRadius:3,padding:[3,8]}
+      }]:[];
+
+      c1.setOption({
+        backgroundColor:'transparent',
+        animation:true,animationDuration:700,animationEasing:'cubicOut',
+        tooltip:{
+          trigger:'axis',
+          axisPointer:{type:'cross',crossStyle:{color:'rgba(48,54,61,0.8)'},lineStyle:{color:'rgba(48,54,61,0.5)'}},
+          backgroundColor:'#0d1117',borderColor:'#30363d',borderWidth:1,padding:12,
+          formatter:function(params){
+            const dayVal=params[0].axisValue;
+            const ms2=nowMs+dayVal*86400000;
+            const d=new Date(ms2);
+            const phase=ms2<botMs?'📉 Drawdown':ms2<h5Ms?'🔄 Recovery':'🚀 Bull Run';
+            let h='<div style="font-family:JetBrains Mono,monospace;font-size:11px;min-width:215px">';
+            h+='<div style="color:#e6edf3;font-weight:700;margin-bottom:5px">'+MOS[d.getUTCMonth()]+' '+d.getUTCFullYear()+'  ·  '+phase+'</div>';
+            h+='<div style="border-top:1px solid #30363d;margin:4px 0 5px"></div>';
+            const pItem=params.find(p=>p.seriesName==='Portfolio');
+            const bItem=params.find(p=>p.seriesName==='BTC Price');
+            if(pItem&&pItem.value){
+              const v=pItem.value[1],pnl=Math.round(v-capital),pct=capital>0?((v-capital)/capital*100).toFixed(1):0;
+              h+='<div>Portfolio: <b style="color:#58a6ff">$'+Math.round(v).toLocaleString()+'</b></div>';
+              h+='<div style="color:'+(v>=capital?'#3fb950':'#f85149')+'">P&L: '+(pnl>=0?'+':'')+Math.abs(pnl).toLocaleString()+' ('+(+pct>=0?'+':'')+pct+'%)</div>';
+            }
+            if(bItem&&bItem.value) h+='<div style="color:#8b949e;margin-top:3px">BTC: $'+Math.round(bItem.value[1]).toLocaleString()+'</div>';
+            const di=Math.min(N,Math.max(0,Math.round(dayVal*N/totalDays)));
+            const P=btcArr[di]||btcArr[0],rm=runMinArr[di]||P;
+            const active=TIERS.filter(t=>t.contracts>0&&rm<=t.price);
+            if(active.length){
+              h+='<div style="border-top:1px solid #30363d;margin:5px 0 4px"></div>';
+              let totC=0,wE=0,tPnL=0;
+              active.forEach(t=>{totC+=t.contracts;wE+=t.contracts*t.price;tPnL+=t.contracts*0.01*(P-t.price);});
+              const avgE=Math.round(wE/totC),tBTC=+(totC*0.01).toFixed(2);
+              h+='<div style="color:#c9d1d9">📊 '+tBTC+' BTC · avg $'+(avgE/1000).toFixed(1)+'K · '+totC+' contracts</div>';
+              h+='<div style="color:'+(tPnL>=0?'#3fb950':'#f85149')+'">'+(tPnL>=0?'+':'')+Math.round(tPnL).toLocaleString()+' unrealized</div>';
+              if(liqPx>500){const dist=Math.round(P-liqPx);h+='<div style="color:'+(dist>=0?'#3fb950':'#f85149')+'">'+(dist>=0?'✅':'☠')+' $'+Math.abs(dist).toLocaleString()+' '+(dist>=0?'above':'below')+' liq ($'+Math.round(liqPx/1000)+'K)</div>';}
+            }
+            return h+'</div>';
+          }
+        },
+        grid:{left:72,right:80,top:28,bottom:50,containLabel:false},
+        xAxis:{type:'value',min:0,max:365,
+          axisLabel:{color:'#8b949e',fontSize:9,fontFamily:'JetBrains Mono,monospace',formatter:fmtDay},
+          splitLine:{lineStyle:{color:'rgba(33,38,45,0.5)'}},axisTick:{show:false},axisLine:{lineStyle:{color:'#21262d'}}},
+        yAxis:[
+          {type:'value',name:'Portfolio ($)',nameTextStyle:{color:'#8b949e',fontSize:9,fontFamily:'monospace'},
+           axisLabel:{color:'#8b949e',fontSize:9,fontFamily:'monospace',formatter:v=>v>=1e6?'$'+(v/1e6).toFixed(1)+'M':'$'+Math.round(v/1000)+'K'},
+           splitLine:{lineStyle:{color:'rgba(33,38,45,0.5)'}},axisTick:{show:false},axisLine:{show:false},min:0},
+          {type:'value',name:'BTC Price',nameTextStyle:{color:'#6b7280',fontSize:9,fontFamily:'monospace'},
+           axisLabel:{color:'#6b7280',fontSize:9,fontFamily:'monospace',formatter:v=>'$'+Math.round(v/1000)+'K'},
+           position:'right',splitLine:{show:false},axisTick:{show:false},axisLine:{show:false},min:yRMin}
+        ],
+        visualMap:{show:false,type:'piecewise',seriesIndex:0,dimension:1,
+          pieces:[{lte:capital*0.6,color:'#f85149'},{gt:capital*0.6,lte:capital,color:'#e3b341'},{gt:capital,lte:capital*4,color:'#58a6ff'},{gt:capital*4,color:'#3fb950'}]},
+        series:[
+          {name:'Portfolio',type:'line',yAxisIndex:0,data:portArr.map((y,i)=>[tsArr[i],y]),
+           smooth:0.35,symbol:'none',lineStyle:{width:2.5},
+           areaStyle:{color:{type:'linear',x:0,y:0,x2:0,y2:1,colorStops:[{offset:0,color:'rgba(88,166,255,0.09)'},{offset:1,color:'rgba(88,166,255,0)'}]}},
+           markLine:{silent:true,symbol:'none',lineStyle:{type:'dashed',width:1},label:{show:false},data:c1ML}},
+          {name:'BTC Price',type:'line',yAxisIndex:1,data:btcArr.map((y,i)=>[tsArr[i],y]),
+           smooth:0.35,symbol:'none',lineStyle:{color:'rgba(255,255,255,0.13)',width:1.5},
+           markLine:btcML.length?{silent:true,symbol:'none',data:btcML}:undefined}
+        ]
+      });
+      window.addEventListener('resize',()=>c1&&!c1.isDisposed()&&c1.resize());
+
+      const legEl=document.getElementById('milliPhaseLegend');
+      if(legEl) legEl.innerHTML=`
+        <span class="mpl-item"><span class="mpl-dot" style="background:#f85149"></span>Drawdown</span>
+        <span class="mpl-item"><span class="mpl-dot" style="background:#e3b341"></span>Underwater</span>
+        <span class="mpl-item"><span class="mpl-dot" style="background:#58a6ff"></span>Recovery / bull run</span>
+        <span class="mpl-item"><span class="mpl-dot" style="background:rgba(248,81,73,0.65)"></span>LIQ price</span>
+        <span class="mpl-item"><span class="mpl-dot" style="background:rgba(88,166,255,0.7)"></span>Tier entries</span>`;
+    }
+
+    // ── CHART 2: ECharts — Profit Projection (Full Horizon) ──────────
+    const el2=document.getElementById('milliProfitCanvas');
+    if(el2){
+      const prev=echarts.getInstanceByDom(el2);if(prev)prev.dispose();
+      const c2=echarts.init(el2,null,{renderer:'canvas'});
+      window._milliProfitChart=c2;
+      window._milliProfitVis=window._milliProfitVis||[true,false,false];
+
+      const c2ML=[
+        {xAxis:0,lineStyle:{color:'rgba(139,148,158,0.35)',type:'dashed',width:1.5},
+         label:{show:true,formatter:'NOW',color:'rgba(139,148,158,0.6)',position:'insideStartTop',fontWeight:'bold',fontSize:9,fontFamily:'monospace',distance:4}},
+        {xAxis:botDay,lineStyle:{color:'rgba(248,81,73,0.5)',type:'dashed',width:1.5},
+         label:{show:true,formatter:'BOT',color:'#f85149',position:'insideStartTop',fontWeight:'bold',fontSize:9,fontFamily:'monospace',distance:4}},
+        {xAxis:h5Day,lineStyle:{color:'rgba(210,147,34,0.7)',type:'dashed',width:1.5},
+         label:{show:true,formatter:'H5',color:'#d29922',position:'insideStartTop',fontWeight:'bold',fontSize:9,fontFamily:'monospace',distance:4}},
+        {xAxis:athDay,lineStyle:{color:'rgba(63,185,80,0.7)',type:'dashed',width:1.5},
+         label:{show:true,formatter:'EXIT',color:'#3fb950',position:'insideStartTop',fontWeight:'bold',fontSize:9,fontFamily:'monospace',distance:4}},
+        {yAxis:capital,lineStyle:{color:'rgba(139,148,158,0.22)',type:'dashed',width:1},
+         label:{show:true,formatter:'Capital $'+Math.round(capital/1000)+'K',color:'rgba(139,148,158,0.45)',position:'insideStartTop',fontSize:9,fontFamily:'monospace',distance:4}}
+      ];
+
+      c2.setOption({
+        backgroundColor:'transparent',
+        animation:true,animationDuration:900,animationEasing:'cubicOut',
+        tooltip:{
+          trigger:'axis',
+          axisPointer:{type:'cross',crossStyle:{color:'rgba(48,54,61,0.8)'},lineStyle:{color:'rgba(48,54,61,0.5)'}},
+          backgroundColor:'#0d1117',borderColor:'#30363d',borderWidth:1,padding:12,
+          formatter:function(params){
+            const dayVal=params[0].axisValue;
+            const ms2=nowMs+dayVal*86400000;
+            const d=new Date(ms2);
+            const phase=ms2<botMs?'📉 Drawdown':ms2<h5Ms?'🔄 Recovery':ms2<athMs?'🚀 Bull Run':'📊 Post-ATH';
+            let h='<div style="font-family:JetBrains Mono,monospace;font-size:11px;min-width:215px">';
+            h+='<div style="color:#e6edf3;font-weight:700;margin-bottom:5px">'+MOS[d.getUTCMonth()]+' '+d.getUTCFullYear()+'  ·  '+phase+'</div>';
+            h+='<div style="border-top:1px solid #30363d;margin:4px 0 5px"></div>';
+            const cols={'Your Plan':'#58a6ff','Bear Case':'#f85149','Bull Case':'#3fb950'};
+            params.forEach(p=>{
+              if(!p.value) return;
+              const v=p.value[1],pnl=Math.round(v-capital),pct=capital>0?((v-capital)/capital*100).toFixed(1):0;
+              h+='<div style="margin-top:3px"><span style="color:'+(cols[p.seriesName]||'#c9d1d9')+';font-weight:600">'+p.seriesName+':</span> <b style="color:#e6edf3">$'+Math.round(v).toLocaleString()+'</b></div>';
+              h+='<div style="color:'+(v>=capital?'#3fb950':'#f85149')+';margin-left:8px">'+(pnl>=0?'+':'')+Math.abs(pnl).toLocaleString()+' ('+(+pct>=0?'+':'')+pct+'%)</div>';
+            });
+            const daysLeft=Math.round((athMs-ms2)/86400000);
+            if(daysLeft>0){h+='<div style="border-top:1px solid #30363d;margin:5px 0 3px"></div><div style="color:#8b949e">⏱ '+Math.round(daysLeft/30)+' mo to exit ('+fmtMo(athMs)+')</div>';}
+            return h+'</div>';
+          }
+        },
+        grid:{left:72,right:30,top:28,bottom:50,containLabel:false},
+        xAxis:{type:'value',min:0,max:totalDays,
+          axisLabel:{color:'#8b949e',fontSize:9,fontFamily:'JetBrains Mono,monospace',formatter:v=>{const d=new Date(nowMs+v*86400000);return MOS[d.getUTCMonth()]+" '"+String(d.getUTCFullYear()).slice(2);}},
+          splitLine:{lineStyle:{color:'rgba(33,38,45,0.5)'}},axisTick:{show:false},axisLine:{lineStyle:{color:'#21262d'}}},
+        yAxis:{type:'value',name:'Portfolio Value ($)',nameTextStyle:{color:'#8b949e',fontSize:9,fontFamily:'monospace'},
+          axisLabel:{color:'#8b949e',fontSize:9,fontFamily:'monospace',formatter:v=>v>=1e6?'$'+(v/1e6).toFixed(2)+'M':'$'+Math.round(v/1000)+'K'},
+          splitLine:{lineStyle:{color:'rgba(33,38,45,0.5)'}},axisTick:{show:false},axisLine:{show:false},min:0},
+        visualMap:{show:false,type:'piecewise',seriesIndex:0,dimension:1,
+          pieces:[{lte:capital*0.6,color:'#f85149'},{gt:capital*0.6,lte:capital,color:'#e3b341'},{gt:capital,lte:capital*4,color:'#58a6ff'},{gt:capital*4,color:'#3fb950'}]},
+        series:[
+          {name:'Your Plan',type:'line',show:window._milliProfitVis[0],
+           data:portArr.map((y,i)=>[tsArr[i],y]),smooth:0.35,symbol:'none',lineStyle:{width:2.5},
+           areaStyle:{color:{type:'linear',x:0,y:0,x2:0,y2:1,colorStops:[{offset:0,color:'rgba(88,166,255,0.1)'},{offset:1,color:'rgba(88,166,255,0)'}]}},
+           markLine:{silent:true,symbol:'none',lineStyle:{type:'dashed'},label:{show:false},data:c2ML}},
+          {name:'Bear Case',type:'line',show:window._milliProfitVis[1],
+           data:bearS.pArr.map((y,i)=>[tsArr[i],y]),smooth:0.35,symbol:'none',
+           lineStyle:{color:'rgba(248,81,73,0.75)',width:1.8,type:'dashed'},itemStyle:{color:'rgba(248,81,73,0.75)'}},
+          {name:'Bull Case',type:'line',show:window._milliProfitVis[2],
+           data:bullS.pArr.map((y,i)=>[tsArr[i],y]),smooth:0.35,symbol:'none',
+           lineStyle:{color:'rgba(63,185,80,0.75)',width:1.8,type:'dashed'},itemStyle:{color:'rgba(63,185,80,0.75)'}}
+        ]
+      });
+      window.addEventListener('resize',()=>c2&&!c2.isDisposed()&&c2.resize());
+
+      const togEl=document.getElementById('milliChartToggle');
+      if(togEl) togEl.innerHTML=`
+        <button class="mct-btn${window._milliProfitVis[0]?' mct-active':''}" onclick="window.toggleMilliProfit(0,this)">💼 Your Plan ($${Math.round(top/1000)}K)</button>
+        <button class="mct-btn${window._milliProfitVis[1]?' mct-active':''}" onclick="window.toggleMilliProfit(1,this)">📉 Bear Case ($155K)</button>
+        <button class="mct-btn${window._milliProfitVis[2]?' mct-active':''}" onclick="window.toggleMilliProfit(2,this)">🚀 Bull Case ($380K)</button>`;
+      const legEl2=document.getElementById('milliPhaseLegend2');
+      if(legEl2) legEl2.innerHTML=`
+        <span class="mpl-item"><span class="mpl-dot" style="background:#f85149"></span>Drawdown</span>
+        <span class="mpl-item"><span class="mpl-dot" style="background:#e3b341"></span>Recovery</span>
+        <span class="mpl-item"><span class="mpl-dot" style="background:#58a6ff"></span>Bull run</span>
+        <span class="mpl-item"><span class="mpl-dot" style="background:#3fb950"></span>ATH profit zone</span>`;
+    }
+  })();
 
         function vline(ms,color,lbl,top,dash){
           const px=xA.getPixelForValue(msToDay(ms));
@@ -9572,12 +9753,13 @@ window.milliResetCustom = function(){
 updateMilli();
 
 window.toggleMilliProfit=function(dsIdx,btn){
-  const chart=Chart.getChart('milliProfitCanvas');
-  if(!chart) return;
-  const ds=chart.data.datasets[dsIdx];
-  if(!ds) return;
-  ds.hidden=!ds.hidden;
-  chart.update('none');
+  const c=window._milliProfitChart;
+  if(!c||c.isDisposed()) return;
+  window._milliProfitVis=window._milliProfitVis||[true,false,false];
+  window._milliProfitVis[dsIdx]=!window._milliProfitVis[dsIdx];
+  const upd=[{},{},{}];
+  upd[dsIdx]={show:window._milliProfitVis[dsIdx]};
+  c.setOption({series:upd},false);
   btn.classList.toggle('mct-active');
 };
 
