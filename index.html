@@ -8948,15 +8948,15 @@ function updateMilli(){
   ];
   let scHTML='';
   SCENARIOS.forEach(s=>{
-    let scMargin=0,scPnL=0;
+    let scPnL=0;
     TIERS.forEach(t=>{
-      const ep=t.n===4?s.bot:t.price;
+      const ep=t.price;
+      if(ep<s.bot) return; // tier entry below scenario bottom — won't fire
       const c=Math.max(0,Math.floor((deployable*t.pct/100*lev)/(ep*0.01)));
-      const m=c*ep*0.01/lev;
-      scMargin+=m; scPnL+=(s.tgt-ep)*0.01*c;
+      scPnL+=(s.tgt-ep)*0.01*c;
     });
-    const scPort=scMargin+scPnL;
-    const scROI=scMargin>0?scPnL/scMargin:0;
+    const scPort=capital+scPnL;
+    const scROI=capital>0?scPnL/capital:0;
     const profColor=scPnL>=0?'g':'r';
     scHTML+=`<tr class="${s.cls}">
       <td class="sc-name">${s.name}</td>
