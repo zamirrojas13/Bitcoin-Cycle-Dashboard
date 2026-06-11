@@ -7990,6 +7990,56 @@ async function fetchLive(){
 }
 applyPrice(68223,0.024);fetchLive();setInterval(fetchLive,30000);
 
+// ── WEEKLY/MONTHLY OHLC AUTO-UPDATE (cached 7 days, Binance) ─────────
+(async function fetchMissingOHLC(){
+  const KEY='btc_ohlc_v2',TS='btc_ohlc_v2_ts',WEEK=604800000,now=Date.now();
+  let ext=null;
+  try{
+    if(now-parseInt(localStorage.getItem(TS)||0)<WEEK)
+      ext=JSON.parse(localStorage.getItem(KEY)||'null');
+  }catch(e){}
+
+  if(!ext){
+    // +1 day past last WK date → opens on the next Binance weekly candle (Mon)
+    const lastWkMs=new Date(WK[WK.length-1][0]).getTime()+86400000;
+    const lastMoStr=MO[MO.length-1][0];
+    try{
+      const[rW,rM]=await Promise.all([
+        fetch('https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1w&startTime='+lastWkMs+'&limit=52').then(r=>r.json()),
+        fetch('https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1M&startTime='+new Date(lastMoStr+'-01').getTime()+'&limit=24').then(r=>r.json())
+      ]);
+      const p=v=>Math.round(parseFloat(v));
+      const fmtD=ms=>{const d=new Date(ms);return d.getUTCFullYear()+'-'+String(d.getUTCMonth()+1).padStart(2,'0')+'-'+String(d.getUTCDate()).padStart(2,'0');};
+      const fmtM=ms=>{const d=new Date(ms);return d.getUTCFullYear()+'-'+String(d.getUTCMonth()+1).padStart(2,'0');};
+      ext={
+        wk:rW.filter(k=>k[6]<now-3600000).map(k=>[fmtD(k[0]),p(k[1]),p(k[2]),p(k[3]),p(k[4])]),
+        mo:rM.filter(k=>k[6]<now-3600000).map(k=>[fmtM(k[0]),p(k[1]),p(k[2]),p(k[3]),p(k[4])]).filter(r=>r[0]>lastMoStr)
+      };
+      try{localStorage.setItem(KEY,JSON.stringify(ext));localStorage.setItem(TS,String(now));}catch(e){}
+    }catch(e){console.log('[OHLC] fetch failed:',e.message);return;}
+  }
+
+  // Append new rows (dedup by date string)
+  const wkSet=new Set(WK.map(r=>r[0]));
+  ext.wk.forEach(r=>{if(!wkSet.has(r[0])){WK.push(r);VOL_WK.push(0);wkSet.add(r[0]);}});
+  const moSet=new Set(MO.map(r=>r[0]));
+  ext.mo.forEach(r=>{if(!moSet.has(r[0])){MO.push(r);VOL_MO.push(0);moSet.add(r[0]);}});
+
+  // Refresh chart if currently on weekly or monthly view
+  if(aData===WK||aData===MO){
+    myChart.data.labels=aData.map(r=>r[0]);
+    myChart.data.datasets[0].data=aData.map(r=>r[4]);
+    myChart.update('none');
+    if(volOn&&typeof volChart!=='undefined'&&typeof syncVolChart==='function')syncVolChart();
+  }
+
+  const n=(ext.wk||[]).length+(ext.mo||[]).length;
+  if(n){
+    console.log('[OHLC] +'+ext.wk.length+'wk +'+ext.mo.length+'mo candles loaded');
+    const el=document.getElementById('upd');if(el)el.textContent+=' · chart +'+n;
+  }
+})();
+
 // ── PREDICTION CHART ──────────────────────────────────────────────────
 (function(){
   const histMo=MO.filter(r=>r[0]>='2022-01');
