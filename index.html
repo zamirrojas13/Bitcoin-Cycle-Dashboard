@@ -9314,7 +9314,7 @@ function updateMilli(){
       TIERS.forEach((t,idx)=>{ if(!entered.has(idx)&&t.contracts>0&&runMin<=t.price) entered.add(idx); });
       let v=capital;
       entered.forEach(idx=>{ const t=TIERS[idx]; v+=t.contracts*0.01*(P-t.price); });
-      portArr.push(Math.max(0,Math.round(v)));
+      portArr.push(Math.max(1,Math.round(v))); // min 1 — prevents log(0) on log-scale axis
     }
 
     // ── Scenario path generator ──────────────────────────────────────
@@ -9345,7 +9345,7 @@ function updateMilli(){
         const P=bArr[i]; rm2=Math.min(rm2,P);
         TIERS.forEach((t,idx)=>{if(!ent.has(idx)&&sContr[idx]>0&&rm2<=t.price)ent.add(idx);});
         let v=capital; ent.forEach(idx=>{const t=TIERS[idx];v+=sContr[idx]*0.01*(P-t.price);});
-        pArr.push(Math.max(0,Math.round(v)));
+        pArr.push(Math.max(1,Math.round(v))); // min 1 for log-scale axis
       }
       return{bArr,pArr};
     }
@@ -9483,9 +9483,9 @@ function updateMilli(){
           axisLabel:{color:'#8b949e',fontSize:9,fontFamily:'JetBrains Mono,monospace',formatter:fmtDay},
           splitLine:{lineStyle:{color:'rgba(33,38,45,0.5)'}},axisTick:{show:false},axisLine:{lineStyle:{color:'#21262d'}}},
         yAxis:[
-          {type:'value',name:'Portfolio ($)',nameTextStyle:{color:'#8b949e',fontSize:9,fontFamily:'monospace'},
+          {type:'log',logBase:10,name:'Portfolio ($)',nameTextStyle:{color:'#8b949e',fontSize:9,fontFamily:'monospace'},
            axisLabel:{color:'#8b949e',fontSize:9,fontFamily:'monospace',formatter:v=>v>=1e6?'$'+(v/1e6).toFixed(1)+'M':'$'+Math.round(v/1000)+'K'},
-           splitLine:{lineStyle:{color:'rgba(33,38,45,0.5)'}},axisTick:{show:false},axisLine:{show:false},min:0},
+           splitLine:{lineStyle:{color:'rgba(33,38,45,0.5)'}},axisTick:{show:false},axisLine:{show:false}},
           {type:'value',name:'BTC Price',nameTextStyle:{color:'#6b7280',fontSize:9,fontFamily:'monospace'},
            axisLabel:{color:'#6b7280',fontSize:9,fontFamily:'monospace',formatter:v=>'$'+Math.round(v/1000)+'K'},
            position:'right',splitLine:{show:false},axisTick:{show:false},axisLine:{show:false},min:yRMin}
@@ -9570,10 +9570,9 @@ function updateMilli(){
         xAxis:{type:'value',min:0,max:totalDays,
           axisLabel:{color:'#8b949e',fontSize:9,fontFamily:'JetBrains Mono,monospace',formatter:v=>{const d=new Date(nowMs+v*86400000);return MOS[d.getUTCMonth()]+" '"+String(d.getUTCFullYear()).slice(2);}},
           splitLine:{lineStyle:{color:'rgba(33,38,45,0.5)'}},axisTick:{show:false},axisLine:{lineStyle:{color:'#21262d'}}},
-        yAxis:{type:'value',name:'Portfolio Value ($)',nameTextStyle:{color:'#8b949e',fontSize:9,fontFamily:'monospace'},
+        yAxis:{type:'log',logBase:10,name:'Portfolio Value ($)',nameTextStyle:{color:'#8b949e',fontSize:9,fontFamily:'monospace'},
           axisLabel:{color:'#8b949e',fontSize:9,fontFamily:'monospace',formatter:v=>v>=1e6?'$'+(v/1e6).toFixed(2)+'M':'$'+Math.round(v/1000)+'K'},
-          splitLine:{lineStyle:{color:'rgba(33,38,45,0.5)'}},axisTick:{show:false},axisLine:{show:false},
-          min:Math.max(0,Math.floor(minPort*0.85/1000)*1000)},
+          splitLine:{lineStyle:{color:'rgba(33,38,45,0.5)'}},axisTick:{show:false},axisLine:{show:false}},
         visualMap:{show:false,type:'piecewise',seriesIndex:0,dimension:1,
           pieces:[{lte:capital*0.6,color:'#f85149'},{gt:capital*0.6,lte:capital,color:'#e3b341'},{gt:capital,lte:capital*4,color:'#58a6ff'},{gt:capital*4,color:'#3fb950'}]},
         series:[
