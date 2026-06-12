@@ -1027,6 +1027,44 @@ let tf='weekly',ctype='candle',zonesOn=true,halvOn=true,volOn=true,isLog=true,aD
 let livePrice=68223;
 const H4_DATE = new Date('2024-04-20');
 const ATH_C4 = 126186;
+const ALERTS = [
+  {
+    id: 'a1',
+    label: 'Alert 1 — Early Warning',
+    condition: 'BTC closes below $57,000',
+    sub: 'Deploy 10% · -55% from ATH · Analyst consensus upper bound',
+    threshold: 57000,
+    type: 'price',
+    deploy: '10%'
+  },
+  {
+    id: 'a2',
+    label: 'Alert 2 — In The Zone',
+    condition: 'BTC closes below $50,000',
+    sub: 'Deploy 20% · -60% from ATH · Central estimate (shallower cycle)',
+    threshold: 50000,
+    type: 'price',
+    deploy: '20%'
+  },
+  {
+    id: 'a3',
+    label: 'Alert 3 — High Conviction',
+    condition: 'BTC closes below $44,000',
+    sub: 'Deploy 30% · -65% from ATH · Conservative estimate',
+    threshold: 44000,
+    type: 'price',
+    deploy: '30%'
+  },
+  {
+    id: 'a4',
+    label: 'Alert 4 — Capitulation Flush',
+    condition: '8%+ weekly drop while below $50K',
+    sub: 'Deploy 40% · Fired in last 14 days of every historical bottom',
+    threshold: null,
+    type: 'flush',
+    deploy: '40%'
+  }
+];
 let _milliResizeC1=null,_milliResizeC2=null;
 let _cachedMA350=null,_cachedRP180=null;
 function _computeOHLCCache(){
@@ -1919,45 +1957,6 @@ updateScenario();
 // ══════════════════════════════════════════════════════════════════════
 // ENTRY ALERT PANEL
 // ══════════════════════════════════════════════════════════════════════
-const ALERTS = [
-  {
-    id: 'a1',
-    label: 'Alert 1 — Early Warning',
-    condition: 'BTC closes below $57,000',
-    sub: 'Deploy 10% · -55% from ATH · Analyst consensus upper bound',
-    threshold: 57000,
-    type: 'price',
-    deploy: '10%'
-  },
-  {
-    id: 'a2',
-    label: 'Alert 2 — In The Zone',
-    condition: 'BTC closes below $50,000',
-    sub: 'Deploy 20% · -60% from ATH · Central estimate (shallower cycle)',
-    threshold: 50000,
-    type: 'price',
-    deploy: '20%'
-  },
-  {
-    id: 'a3',
-    label: 'Alert 3 — High Conviction',
-    condition: 'BTC closes below $44,000',
-    sub: 'Deploy 30% · -65% from ATH · Conservative estimate',
-    threshold: 44000,
-    type: 'price',
-    deploy: '30%'
-  },
-  {
-    id: 'a4',
-    label: 'Alert 4 — Capitulation Flush',
-    condition: '8%+ weekly drop while below $50K',
-    sub: 'Deploy 40% · Fired in last 14 days of every historical bottom',
-    threshold: null,
-    type: 'flush',
-    deploy: '40%'
-  }
-];
-
 function renderAlerts(price) {
   const lastFullWk = WK.length >= 2 ? WK[WK.length-2] : null;
   const weeklyChange = lastFullWk ? (lastFullWk[4]-lastFullWk[1])/lastFullWk[1]*100 : null;
