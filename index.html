@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Bitcoin Cycle Dashboard — C4 Bear Bottom Tracker</title>
+<title>Bitcoin Cycle Dashboard — C5 Cycle Trade Planner</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -360,13 +360,102 @@ hr.sep{border:none;border-top:1px solid #21262d;margin:16px 0;}
 .mrc-lbl{font-size:10px;color:#8b949e;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;font-weight:600;}
 .mrc-val{font-size:15px;font-weight:700;font-family:'JetBrains Mono',monospace;}
 .mrc-sub{font-size:11px;color:#6b7280;margin-top:2px;}
+
+/* ── ROLL SCHEDULE ─────────────────────────────────────────── */
+.roll-calendar{display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:9px;margin:12px 0 6px;}
+.roll-card{background:#0d1117;border:1px solid #21262d;border-radius:9px;padding:12px 14px;transition:border-color .2s;}
+.roll-card.rc-past{opacity:.35;}
+.roll-card.rc-current{border-color:rgba(63,185,80,.5);background:rgba(63,185,80,.04);}
+.roll-card.rc-roll{border-color:rgba(210,153,34,.6);background:rgba(210,153,34,.05);animation:pulse-amber 2s infinite;}
+.roll-card.rc-next{border-color:rgba(88,166,255,.4);background:rgba(88,166,255,.04);}
+@keyframes pulse-amber{0%,100%{box-shadow:0 0 0 0 rgba(210,153,34,.3);}50%{box-shadow:0 0 0 5px rgba(210,153,34,0);}}
+.rc-tag{font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px;}
+.rc-tag-current{color:#3fb950;}.rc-tag-roll{color:#d29922;}.rc-tag-next{color:#58a6ff;}.rc-tag-future{color:#484f58;}.rc-tag-past{color:#484f58;}
+.rc-contract{font-size:12px;font-weight:700;font-family:'JetBrains Mono',monospace;color:#e6edf3;margin-bottom:2px;}
+.rc-exp{font-size:10px;color:#6b7280;}
+.rc-countdown{font-size:11px;font-weight:600;margin-top:5px;}
+.roll-alert{background:rgba(210,153,34,.07);border:1px solid rgba(210,153,34,.3);border-radius:8px;padding:10px 14px;font-size:12px;color:#d29922;margin-top:10px;line-height:1.6;}
+
+/* ── EXIT PLANNER ──────────────────────────────────────────── */
+.exit-target-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;margin:12px 0;}
+.exit-card{background:#0d1117;border:1px solid #30363d;border-radius:9px;padding:13px 15px;}
+.exit-card.ec-primary{border-color:rgba(63,185,80,.3);background:rgba(63,185,80,.04);}
+.ec-label{font-size:9px;text-transform:uppercase;letter-spacing:.08em;font-weight:700;color:#8b949e;margin-bottom:9px;}
+.ec-field-row{display:flex;align-items:center;gap:7px;margin-bottom:7px;}
+.ec-field-label{font-size:10px;color:#6b7280;flex:0 0 32px;}
+.ec-input{background:#161b22;border:1px solid #30363d;border-radius:5px;color:#e6edf3;font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;padding:5px 8px;outline:none;width:100%;}
+.ec-input:focus{border-color:#58a6ff;}
+.ec-divider{border:none;border-top:1px solid rgba(255,255,255,.06);margin:9px 0;}
+.ec-stat-row{display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px;}
+.ec-stat-k{color:#6b7280;}
+.ec-stat-v{font-family:'JetBrains Mono',monospace;font-weight:600;color:#e6edf3;}
+.ec-pnl{font-size:15px;font-weight:700;font-family:'JetBrains Mono',monospace;color:#3fb950;margin-top:6px;}
+.exit-totals{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;padding-top:12px;border-top:1px solid rgba(255,255,255,.06);}
+.et-box{background:#0d1117;border:1px solid #21262d;border-radius:8px;padding:10px 13px;}
+.et-lbl{font-size:9px;text-transform:uppercase;letter-spacing:.06em;font-weight:700;color:#8b949e;margin-bottom:5px;}
+.et-val{font-size:16px;font-weight:700;font-family:'JetBrains Mono',monospace;color:#3fb950;}
+.et-sub{font-size:10px;color:#6b7280;margin-top:2px;}
+
+/* ── POSITION TRACKER ──────────────────────────────────────── */
+.pos-fill-section{margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,.05);}
+.pos-fill-row{display:flex;align-items:center;gap:7px;}
+.pf-label{font-size:10px;color:#8b949e;white-space:nowrap;}
+.pf-input{flex:1;background:#161b22;border:1px solid #30363d;border-radius:5px;color:#e6edf3;font-family:'JetBrains Mono',monospace;font-size:12px;padding:4px 8px;outline:none;min-width:0;}
+.pf-input:focus{border-color:#3fb950;}
+.pf-badge{font-size:9px;font-weight:700;padding:2px 7px;border-radius:9999px;flex-shrink:0;cursor:pointer;}
+.pf-filled{background:rgba(63,185,80,.15);color:#3fb950;border:1px solid rgba(63,185,80,.3);}
+.pf-pending{background:rgba(139,148,158,.1);color:#8b949e;border:1px solid rgba(139,148,158,.2);}
+.pf-actual-pnl{font-size:11px;margin-top:5px;font-family:'JetBrains Mono',monospace;font-weight:600;}
+
+/* ── BOTTOM-IN TOGGLE ──────────────────────────────────────── */
+.bottom-in-row{display:flex;align-items:center;gap:8px;margin-top:5px;}
+.toggle-chip{background:#161b22;border:1px solid #30363d;border-radius:6px;color:#8b949e;font-size:11px;padding:5px 12px;cursor:pointer;transition:all .15s;}
+.toggle-chip:hover{border-color:#8b949e;}
+.toggle-chip.tc-active{background:rgba(63,185,80,.1);border-color:rgba(63,185,80,.45);color:#3fb950;}
+
+/* ── EXPORT BUTTON ─────────────────────────────────────────── */
+.plan-export-btn{background:#161b22;border:1px solid #30363d;border-radius:6px;color:#8b949e;font-size:11px;padding:6px 14px;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:5px;margin-left:auto;}
+.plan-export-btn:hover{border-color:#58a6ff;color:#58a6ff;}
+.plan-export-btn.peb-copied{border-color:rgba(63,185,80,.5);color:#3fb950;}
+.milli-section-hdr-row{display:flex;align-items:center;gap:8px;}
+
+/* ── TAX / DISCLAIMER NOTES ────────────────────────────────── */
+.tax-box{background:rgba(88,166,255,.05);border:1px solid rgba(88,166,255,.18);border-radius:8px;padding:11px 14px;font-size:11px;color:#8b949e;line-height:1.7;margin-bottom:12px;}
+.tax-box strong{color:#58a6ff;}
+.stat-caveat{font-size:10px;color:#6b7280;padding:6px 10px 6px 12px;border-left:2px solid #30363d;margin:8px 0;line-height:1.6;}
+.fee-note{font-size:11px;color:#6b7280;padding:8px 11px;background:#0d1117;border-radius:6px;margin-top:6px;line-height:1.6;border:1px solid #21262d;}
+
+/* ── FOOTER ────────────────────────────────────────────────── */
+.dashboard-footer{border-top:1px solid #21262d;padding:14px 20px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;background:#080d12;}
+.footer-build{font-size:10px;color:#484f58;font-family:'JetBrains Mono',monospace;}
+.footer-disc{font-size:10px;color:#484f58;max-width:500px;line-height:1.5;}
+
+/* ── ROLL ALERT BANNER ─────────────────────────────────────── */
+.roll-alert-banner{border-radius:8px;padding:10px 14px;margin-top:8px;font-size:12px;line-height:1.5;border:1px solid;}
+.rab-red{background:rgba(248,81,73,0.08);border-color:rgba(248,81,73,0.35);color:#f85149;}
+.rab-yellow{background:rgba(210,153,34,0.08);border-color:rgba(210,153,34,0.35);color:#d29922;}
+.rab-green{background:rgba(63,185,80,0.08);border-color:rgba(63,185,80,0.3);color:#3fb950;}
+/* ── EXIT TOTALS ROW ───────────────────────────────────────── */
+.exit-totals{background:#0d1117;border:1px solid #21262d;border-radius:8px;padding:12px 16px;margin-top:10px;}
+.exit-totals-row{display:flex;justify-content:space-between;align-items:center;font-size:13px;color:#8b949e;}
+/* ── MOBILE RESPONSIVE ─────────────────────────────────────── */
+@media(max-width:640px){
+  .milli-inputs-grid{grid-template-columns:1fr 1fr!important;}
+  .exit-target-grid,.roll-calendar{grid-template-columns:repeat(2,1fr)!important;}
+  .exit-totals,.acct-liq-grid,.milli-proj-grid,.margin-rec-grid{grid-template-columns:1fr 1fr!important;}
+  .milli-sc-table{font-size:11px!important;}
+  .milli-sc-table th,.milli-sc-table td{padding:7px 8px!important;}
+  h1{font-size:16px!important;}
+  .hdr{flex-direction:column;gap:8px;}
+  .main-tab{padding:12px 14px!important;font-size:13px!important;}
+}
 </style>
 </head>
 <body>
 
 <!-- HEADER -->
 <div class="hdr">
-  <div><h1>Bitcoin Cycle Dashboard</h1><p>C4 Bear Bottom Tracker · Real daily data Jul 2010 – Mar 2026 · Live price · Full cycle analysis &amp; prediction</p></div>
+  <div><h1>Bitcoin Cycle Dashboard</h1><p>C5 Cycle Trade Planner · Live BTC price · Historical data Jul 2010–present · 4-cycle analysis · Coinbase CFM futures</p></div>
   <div class="live">
     <div class="lpv"><span class="ldot"></span>$<span id="lp">68,223</span></div>
     <div class="llbl">BTC/USD · LIVE · Crypto.com&nbsp;<span id="chg" style="color:#3fb950">+1.17%</span></div>
@@ -539,6 +628,7 @@ hr.sep{border:none;border-top:1px solid #21262d;margin:16px 0;}
   <div style="padding:18px 18px 0;">
     <div class="an-section-title" style="color:#bc8cff;font-size:12px;padding:14px 0 4px;">&#9670; Prediction: C4 Bear Bottom + C5 Bull Run</div>
     <div class="an-sub">Based on averages of 3 completed cycles. <strong style="color:#f85149;">Red ellipse</strong> = projected ATL. <strong style="color:#3fb950;">Green ellipse</strong> = projected C5 ATH. <strong style="color:#d29922;">Gold line</strong> = H5.</div>
+    <div class="stat-caveat">&#9888; <strong>Statistical caveat:</strong> R²=0.954 is measured across only 3 completed cycles — not statistically significant with this sample size. Treat all date/price projections as informed estimates with wide uncertainty bands, not forecasts. Past cycles do not guarantee future performance. Bitcoin could break the pattern, fail to make new ATHs, or face regulatory changes that invalidate historical analogs. <strong>This is not financial advice. Never deploy capital you cannot afford to lose entirely.</strong></div>
     <div class="pred-wrap">
       <div class="pred-chart"><canvas id="predCanvas"></canvas></div>
       <div class="pred-meta">
@@ -719,6 +809,9 @@ hr.sep{border:none;border-top:1px solid #21262d;margin:16px 0;}
         <label class="mic-label" for="milliBottom">Expected bottom price</label>
         <div class="mic-input-wrap"><span class="mic-prefix">$</span><input type="number" id="milliBottom" value="47000" min="10000" step="1000" oninput="updateMilli()"></div>
         <div class="mic-hint">Regression: ~$35K · Consensus: $44K–$57K</div>
+        <div class="bottom-in-row">
+          <button class="toggle-chip" id="bottomInBtn" onclick="toggleBottomAlreadyIn(this)" title="Set bottom to current BTC price — if you think the cycle bottom is already in">&#9989; Bottom already in?</button>
+        </div>
       </div>
       <div class="milli-input-card">
         <label class="mic-label" for="milliTop">C5 ATH target price</label>
@@ -811,6 +904,38 @@ hr.sep{border:none;border-top:1px solid #21262d;margin:16px 0;}
       </table>
     </div>
 
+    <!-- EXIT PLANNER -->
+    <div class="milli-section-hdr-row">
+      <div class="milli-section-hdr" style="flex:1;border-bottom:none;margin-bottom:0;padding-bottom:8px;">&#127937; Exit Strategy — Scale-Out Planner</div>
+      <button class="plan-export-btn" id="exportPlanBtn" onclick="exportPlan(this)" title="Copy your full trade plan to clipboard">&#128203; Copy Plan</button>
+    </div>
+    <div style="font-size:12px;color:#8b949e;margin-bottom:12px;line-height:1.6;">Define 3 price targets where you'll sell. Total % must equal 100. Uses your avg entry price to calculate P&amp;L per tranche net of taker fees (0.10%).</div>
+    <div class="exit-target-grid" id="exitTargetGrid">
+      <div class="exit-card ec-primary">
+        <div class="ec-label">&#9312; First exit — take initial profits</div>
+        <div class="ec-field-row"><span class="ec-field-label">Sell %</span><input class="ec-input" id="ep_pct1" type="number" value="25" min="1" max="99" step="5" oninput="buildExitPlanner()">%</div>
+        <div class="ec-field-row"><span class="ec-field-label">At $</span><input class="ec-input" id="ep_px1" type="number" value="180000" step="10000" oninput="buildExitPlanner()"></div>
+        <hr class="ec-divider">
+        <div id="ep_result1" style="font-size:11px;color:#6b7280;">—</div>
+      </div>
+      <div class="exit-card ec-primary">
+        <div class="ec-label">&#9313; Second exit — main tranche</div>
+        <div class="ec-field-row"><span class="ec-field-label">Sell %</span><input class="ec-input" id="ep_pct2" type="number" value="50" min="1" max="99" step="5" oninput="buildExitPlanner()">%</div>
+        <div class="ec-field-row"><span class="ec-field-label">At $</span><input class="ec-input" id="ep_px2" type="number" value="280000" step="10000" oninput="buildExitPlanner()"></div>
+        <hr class="ec-divider">
+        <div id="ep_result2" style="font-size:11px;color:#6b7280;">—</div>
+      </div>
+      <div class="exit-card ec-primary">
+        <div class="ec-label">&#9314; Third exit — moon bag</div>
+        <div class="ec-field-row"><span class="ec-field-label">Sell %</span><input class="ec-input" id="ep_pct3" type="number" value="25" min="1" max="99" step="5" oninput="buildExitPlanner()">%</div>
+        <div class="ec-field-row"><span class="ec-field-label">At $</span><input class="ec-input" id="ep_px3" type="number" value="350000" step="10000" oninput="buildExitPlanner()"></div>
+        <hr class="ec-divider">
+        <div id="ep_result3" style="font-size:11px;color:#6b7280;">—</div>
+      </div>
+    </div>
+    <div class="exit-totals" id="exitTotals"><!-- JS --></div>
+    <div class="fee-note">&#128176; <strong style="color:#8b949e;">US Tax (Section 1256):</strong> CFM futures = 60% long-term / 40% short-term rate regardless of holding period. Consult a CPA before calculating gains. &nbsp;|&nbsp; <strong style="color:#8b949e;">Rolling costs:</strong> Each monthly roll costs ~0.1–0.2% in spread + fees. Over 12+ months that's ~1–2% total friction — factored into the net figures above.</div>
+
     <!-- MARGIN & LIQUIDATION RISK -->
     <div class="milli-section-hdr">&#9888;&#65039; Margin &amp; Liquidation Risk</div>
     <div id="milliBanner"><!-- JS --></div>
@@ -834,8 +959,15 @@ hr.sep{border:none;border-top:1px solid #21262d;margin:16px 0;}
     <div class="milli-checklist-sub">6 research-derived indicators from our Python backtesting across 4 cycles (R²=0.954). These are the actual signals that statistically preceded each historical bottom — not price alerts. <strong style="color:#e6edf3;">Green = active · Yellow = approaching · Gray = waiting.</strong> The more green, the closer we are.</div>
     <div class="milli-checklist-grid" id="milliChecklist"><!-- JS --></div>
 
+    <!-- ROLL SCHEDULE -->
+    <div class="milli-section-hdr">&#128197; BIT Contract Roll Schedule</div>
+    <div style="font-size:12px;color:#8b949e;margin-bottom:4px;line-height:1.6;">BIT contracts expire on the <strong style="color:#e6edf3;">last Friday of each month</strong>. Roll 1–2 weeks before expiry: close current month, open next month to avoid forced settlement.</div>
+    <div class="roll-calendar" id="rollCalendar"><!-- JS --></div>
+    <div id="rollAlert"><!-- JS --></div>
+
     <!-- COINBASE CFM REFERENCE -->
     <div class="milli-section-hdr">&#9889; Coinbase CFM Quick Reference</div>
+    <div class="tax-box">&#9878;&#65039; <strong>US Section 1256 (Futures Tax):</strong> Coinbase CFM BIT contracts qualify as regulated futures contracts — taxed 60% long-term / 40% short-term <em>regardless of how long you hold</em>. This is favorable vs spot (which uses your actual holding period). A $100K gain on futures = ~$23K federal tax (vs ~$37K at short-term rates). <strong>Consult a qualified CPA</strong> — rules vary by jurisdiction and your income level.</div>
     <div class="milli-cfm-grid">
       <div class="milli-cfm-card">
         <div class="cfm-title">BIT Contract Specs</div>
@@ -7956,10 +8088,13 @@ function applyPrice(price,change){
   document.getElementById('lp').textContent=Math.round(price).toLocaleString();
   const pct=parseFloat(change)*100,ce=document.getElementById('chg');
   ce.textContent=(pct>=0?'+':'')+pct.toFixed(2)+'%';ce.style.color=pct>=0?'#3fb950':'#f85149';
-  document.getElementById('drop').textContent='-'+((126186-price)/126186*100).toFixed(1)+'%';
+  const C4_ATH=126186;
+  document.getElementById('drop').textContent='-'+((C4_ATH-price)/C4_ATH*100).toFixed(1)+'%';
   const days=Math.floor((Date.now()-new Date('2025-10-06'))/86400000);
   document.getElementById('ddays').textContent=days;
-  document.getElementById('predDays').textContent=days+' days since ATH';
+  const bearEstDays=383; // avg of C2:363d and C3:363d bear phases
+  const bearPct=Math.min(100,Math.round(days/bearEstDays*100));
+  document.getElementById('predDays').textContent=days+' / ~'+bearEstDays+' est. days ('+bearPct+'%)';
   const h5days=Math.floor((new Date('2028-04-18')-Date.now())/86400000);
   document.getElementById('h5days').textContent=h5days+' days';
   if(aData===WK||aData===MO||aData===DA){const last=aData[aData.length-1];if(last){last[4]=price;myChart.data.datasets[0].data[myChart.data.datasets[0].data.length-1]=price;myChart.update('none');}}
@@ -7989,56 +8124,6 @@ async function fetchLive(){
   document.getElementById('upd').textContent='Price fetch failed — using last known · '+new Date().toLocaleTimeString();
 }
 applyPrice(68223,0.024);fetchLive();setInterval(fetchLive,30000);
-
-// ── WEEKLY/MONTHLY OHLC AUTO-UPDATE (cached 7 days, Binance) ─────────
-(async function fetchMissingOHLC(){
-  const KEY='btc_ohlc_v2',TS='btc_ohlc_v2_ts',WEEK=604800000,now=Date.now();
-  let ext=null;
-  try{
-    if(now-parseInt(localStorage.getItem(TS)||0)<WEEK)
-      ext=JSON.parse(localStorage.getItem(KEY)||'null');
-  }catch(e){}
-
-  if(!ext){
-    // +1 day past last WK date → opens on the next Binance weekly candle (Mon)
-    const lastWkMs=new Date(WK[WK.length-1][0]).getTime()+86400000;
-    const lastMoStr=MO[MO.length-1][0];
-    try{
-      const[rW,rM]=await Promise.all([
-        fetch('https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1w&startTime='+lastWkMs+'&limit=52').then(r=>r.json()),
-        fetch('https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1M&startTime='+new Date(lastMoStr+'-01').getTime()+'&limit=24').then(r=>r.json())
-      ]);
-      const p=v=>Math.round(parseFloat(v));
-      const fmtD=ms=>{const d=new Date(ms);return d.getUTCFullYear()+'-'+String(d.getUTCMonth()+1).padStart(2,'0')+'-'+String(d.getUTCDate()).padStart(2,'0');};
-      const fmtM=ms=>{const d=new Date(ms);return d.getUTCFullYear()+'-'+String(d.getUTCMonth()+1).padStart(2,'0');};
-      ext={
-        wk:rW.filter(k=>k[6]<now-3600000).map(k=>[fmtD(k[0]),p(k[1]),p(k[2]),p(k[3]),p(k[4])]),
-        mo:rM.filter(k=>k[6]<now-3600000).map(k=>[fmtM(k[0]),p(k[1]),p(k[2]),p(k[3]),p(k[4])]).filter(r=>r[0]>lastMoStr)
-      };
-      try{localStorage.setItem(KEY,JSON.stringify(ext));localStorage.setItem(TS,String(now));}catch(e){}
-    }catch(e){console.log('[OHLC] fetch failed:',e.message);return;}
-  }
-
-  // Append new rows (dedup by date string)
-  const wkSet=new Set(WK.map(r=>r[0]));
-  ext.wk.forEach(r=>{if(!wkSet.has(r[0])){WK.push(r);VOL_WK.push(0);wkSet.add(r[0]);}});
-  const moSet=new Set(MO.map(r=>r[0]));
-  ext.mo.forEach(r=>{if(!moSet.has(r[0])){MO.push(r);VOL_MO.push(0);moSet.add(r[0]);}});
-
-  // Refresh chart if currently on weekly or monthly view
-  if(aData===WK||aData===MO){
-    myChart.data.labels=aData.map(r=>r[0]);
-    myChart.data.datasets[0].data=aData.map(r=>r[4]);
-    myChart.update('none');
-    if(volOn&&typeof volChart!=='undefined'&&typeof syncVolChart==='function')syncVolChart();
-  }
-
-  const n=(ext.wk||[]).length+(ext.mo||[]).length;
-  if(n){
-    console.log('[OHLC] +'+ext.wk.length+'wk +'+ext.mo.length+'mo candles loaded');
-    const el=document.getElementById('upd');if(el)el.textContent+=' · chart +'+n;
-  }
-})();
 
 // ── PREDICTION CHART ──────────────────────────────────────────────────
 (function(){
@@ -9071,6 +9156,28 @@ function updateMilli(){
   const rp180Est = price*1.35; // rough estimate of 180d high above current
   const pRp180   = price/rp180Est;
 
+  // ── Compute MA350, RP180, weekly flush from hardcoded OHLC arrays ──
+  // DA format: [date, open, low, high, close]  — index 4 = close, 3 = high
+  // WK format: same layout
+  const daCloses = DA.map(r=>r[4]);
+  const ma350 = daCloses.length>=350
+    ? daCloses.slice(-350).reduce((s,v)=>s+v,0)/350
+    : daCloses.reduce((s,v)=>s+v,0)/daCloses.length;
+  const pma350Ratio = price/ma350;
+
+  const daHighs = DA.map(r=>r[3]);
+  const rp180 = daHighs.length>=180
+    ? Math.max(...daHighs.slice(-180))
+    : Math.max(...daHighs);
+  const pRp180Real = price/rp180;
+
+  // Weekly flush: last complete WK candle — close/open - 1
+  const lastWk   = WK[WK.length-1];
+  const prevWk   = WK.length>=2?WK[WK.length-2]:null;
+  // WK[0]=date [1]=open [2]=low [3]=high [4]=close
+  const wkFlushPct = prevWk ? (prevWk[4]-prevWk[1])/prevWk[1]*100 : 0;
+  const weeklyFlushed = wkFlushPct<=-8;
+
   const SIGNALS=[
     {
       name:'&#9201; Timing Gate — Day 650–1050 post-H4',
@@ -9088,24 +9195,24 @@ function updateMilli(){
     },
     {
       name:'&#128293; P/MA350 ≤ 0.50 — Price below half the 350-day MA',
-      desc:`Best sniper signal: 0.5% false positive rate, fired in last 14 days of all 4 cycles. Fires when BTC trades below 50% of its 350-day moving average. Est. fires around <strong>$40K–$48K</strong> as MA350 declines. Verify live: TradingView → BTC/USD 1D → MA(350).`,
+      desc:`Best sniper signal: 0.5% false positive rate, fired in last 14 days of all 4 cycles. Fires when BTC trades below 50% of its 350-day moving average. MA350 from ${DA.length}d OHLC history: <strong>$${Math.round(ma350).toLocaleString()}</strong>. Current ratio: <strong>${pma350Ratio.toFixed(3)}</strong> (fires at ≤ 0.500, i.e. BTC ≤ $${Math.round(ma350*0.5).toLocaleString()}).`,
       conf:'0.5% FP · 4/4 cycles · sniper combo',
-      status:price<48000?'fired':(price<58000?'close':'waiting'),
-      icon:price<48000?'&#9989;':'&#128293;'
+      status:pma350Ratio<=0.50?'fired':(pma350Ratio<=0.65?'close':'waiting'),
+      icon:pma350Ratio<=0.50?'&#9989;':'&#128293;'
     },
     {
       name:'&#128680; Weekly Flush ≥ 8% while DD ≥ 70%',
-      desc:`The "4/4 config" — only signal that fired in the last 14 days of every historical bottom with near-zero false positives. Requires both: weekly close down ≥8% AND total drawdown ≥70%. Watch the <strong>Alerts tab</strong> for the live flush tracker.`,
+      desc:`The "4/4 config" — only signal that fired in the last 14 days of every historical bottom with near-zero false positives. Last weekly candle (${prevWk?prevWk[0]:'n/a'}): <strong>${wkFlushPct.toFixed(1)}%</strong>. Fires when weekly candle closes ≥8% red AND total drawdown ≥70%. Watch the <strong>Alerts tab</strong> for the live flush tracker.`,
       conf:'4/4 cycles · last-14-day precision',
-      status:dd<=-70&&price<50000?'close':'waiting',
-      icon:'&#128680;'
+      status:weeklyFlushed&&dd<=-70?'fired':(dd<=-55&&wkFlushPct<=-4?'close':'waiting'),
+      icon:weeklyFlushed&&dd<=-70?'&#9989;':'&#128680;'
     },
     {
       name:'&#128262; P/RP180 ≤ 0.85 — Price below 85% of 180-day high',
-      desc:`Best F1 score (0.700) paired with DD ≥ 70%. Fires when price drops below 85% of the rolling 6-month high — signals momentum breakdown. Est. current ratio: ~${pRp180.toFixed(2)} (fires at ≤ 0.85). Verify on TradingView: compare current vs 180-day high.`,
+      desc:`Best F1 score (0.700) paired with DD ≥ 70%. Fires when price drops below 85% of the rolling 6-month high. 180d high from OHLC: <strong>$${Math.round(rp180).toLocaleString()}</strong>. Current ratio: <strong>${pRp180Real.toFixed(3)}</strong> (fires at ≤ 0.85, i.e. BTC ≤ $${Math.round(rp180*0.85).toLocaleString()}).`,
       conf:'F1=0.700 — best balanced signal',
-      status:pRp180<=0.85?'fired':(pRp180<=0.92?'close':'waiting'),
-      icon:pRp180<=0.85?'&#9989;':'&#128262;'
+      status:pRp180Real<=0.85?'fired':(pRp180Real<=0.92?'close':'waiting'),
+      icon:pRp180Real<=0.85?'&#9989;':'&#128262;'
     },
     {
       name:'&#128197; Day 900 Peak Timing Window (Oct 2026 ±60d)',
@@ -9500,6 +9607,10 @@ function updateMilli(){
         <span class="mpl-item"><span class="mpl-dot" style="background:#3fb950"></span>ATH profit zone</span>`;
     }
   })();
+
+  // ── EXIT PLANNER & ROLL SCHEDULE (wired from updateMilli context) ─
+  buildExitPlanner(TIERS, totalContracts, avgEntry, lev, capital, livePrice||price);
+  buildRollSchedule();
 }
 window.milliCustomPrices    = window.milliCustomPrices    || {};
 window.milliCustomContracts = window.milliCustomContracts || {};
@@ -9531,6 +9642,191 @@ window.toggleMilliProfit=function(dsIdx,btn){
   c.setOption({series:upd},false);
   btn.classList.toggle('mct-active');
 };
+
+// ── EXIT PLANNER ────────────────────────────────────────────────────
+function buildExitPlanner(TIERS, totalContracts, avgEntry, lev, capital, curPrice){
+  // Allow standalone call (from oninput) with no args — read state from DOM
+  if(TIERS===undefined){
+    // Re-run full updateMilli which calls us with real args
+    updateMilli(); return;
+  }
+  const get=(id,fb)=>{const el=document.getElementById(id);return el?parseFloat(el.value)||fb:fb;};
+  const pcts=[get('ep_pct1',25),get('ep_pct2',50),get('ep_pct3',25)];
+  const pxs =[get('ep_px1',180000),get('ep_px2',280000),get('ep_px3',350000)];
+  const pctSum=pcts.reduce((a,b)=>a+b,0);
+  const TAKER=0.001; // 0.10% Coinbase taker fee
+
+  let totalProfit=0,totalContsExited=0;
+  for(let i=0;i<3;i++){
+    const el=document.getElementById('ep_result'+(i+1));
+    if(!el) continue;
+    if(totalContracts===0||avgEntry===0){
+      el.innerHTML='<span style="color:#6b7280">Enter your trade details above to see exit math.</span>';
+      continue;
+    }
+    const tranchePct=pcts[i]/Math.max(pctSum,1);
+    const conts=Math.max(1,Math.round(totalContracts*tranchePct));
+    const exitPx=pxs[i];
+    const rawPnL=(exitPx-avgEntry)*0.01*conts;
+    const fees=exitPx*0.01*conts*TAKER + avgEntry*0.01*conts*TAKER;
+    const netPnL=rawPnL-fees;
+    totalProfit+=netPnL;
+    totalContsExited+=conts;
+    const roi=capital>0?netPnL/capital:0;
+    const color=netPnL>=0?'#3fb950':'#f85149';
+    const sign=netPnL>=0?'+':'';
+    el.innerHTML=`
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;">
+        <span style="color:#8b949e;">${conts} contracts × $${exitPx.toLocaleString()}</span>
+        <span style="color:${color};font-weight:700;font-size:13px;">${sign}$${Math.round(netPnL).toLocaleString()}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:10px;color:#6b7280;">
+        <span>Fees: ~$${Math.round(fees).toLocaleString()}</span>
+        <span style="color:${color};">${sign}${roi.toFixed(1)}× on capital</span>
+      </div>`;
+  }
+
+  const totEl=document.getElementById('exitTotals');
+  if(!totEl) return;
+  if(totalContracts===0){totEl.innerHTML='';return;}
+  const allColor=totalProfit>=0?'#3fb950':'#f85149';
+  const pctWarn=Math.abs(pctSum-100)>1?`<span style="color:#d29922;margin-left:8px;">⚠ Tranche % sum = ${pctSum}% (target 100%)</span>`:'';
+  totEl.innerHTML=`
+    <div class="exit-totals-row">
+      <span>Total net profit (all 3 exits):</span>
+      <strong style="color:${allColor};font-size:15px;">${totalProfit>=0?'+':''}$${Math.round(totalProfit).toLocaleString()}</strong>
+      ${pctWarn}
+    </div>
+    <div class="exit-totals-row" style="font-size:11px;color:#6b7280;margin-top:4px;">
+      <span>${totalContsExited} contracts exited out of ${totalContracts} · Avg entry $${Math.round(avgEntry).toLocaleString()} · Section 1256 blended rate applies</span>
+    </div>`;
+}
+
+// ── ROLL SCHEDULE ────────────────────────────────────────────────────
+function buildRollSchedule(){
+  const el=document.getElementById('rollCalendar');
+  const alertEl=document.getElementById('rollAlert');
+  if(!el) return;
+
+  function lastFridayOf(year,month){
+    // month: 0-indexed JS month
+    const d=new Date(Date.UTC(year,month+1,0)); // last day of month
+    d.setUTCDate(d.getUTCDate()-((d.getUTCDay()+2)%7)); // back to last Friday
+    return d;
+  }
+
+  const now=new Date();
+  const MONTH_NAMES=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const cards=[];
+  // Show 6 months starting from last month
+  for(let m=-1;m<=4;m++){
+    const d=new Date(Date.UTC(now.getUTCFullYear(),now.getUTCMonth()+m,1));
+    const yr=d.getUTCFullYear(),mo=d.getUTCMonth();
+    const expiry=lastFridayOf(yr,mo);
+    const rollDeadline=new Date(expiry); rollDeadline.setUTCDate(expiry.getUTCDate()-10);
+    const nowMs=Date.now(),exMs=expiry.getTime(),rdMs=rollDeadline.getTime();
+    const daysToExp=Math.ceil((exMs-nowMs)/86400000);
+    const daysToRoll=Math.ceil((rdMs-nowMs)/86400000);
+    let cls='rc-next',label='Upcoming';
+    if(exMs<nowMs){cls='rc-past';label='Expired';}
+    else if(daysToExp<=7){cls='rc-roll';label='ROLL NOW';}
+    else if(daysToRoll<=0){cls='rc-roll';label='Roll Window';}
+    else if(daysToRoll<=14){cls='rc-current';label='Rolling soon';}
+    cards.push(`
+      <div class="roll-card ${cls}">
+        <div class="rc-month">${MONTH_NAMES[mo]} ${yr}</div>
+        <div class="rc-expiry">Expires ${MONTH_NAMES[mo]} ${expiry.getUTCDate()}</div>
+        <div class="rc-roll-by">Roll by ${MONTH_NAMES[mo]} ${rollDeadline.getUTCDate()}</div>
+        <div class="rc-status">${label}${exMs>nowMs&&daysToExp>=0?` · ${daysToExp}d`:''}</div>
+      </div>`);
+  }
+  el.innerHTML=cards.join('');
+
+  // Alert banner
+  const nextExp=lastFridayOf(now.getUTCFullYear(),now.getUTCMonth());
+  const daysLeft=Math.ceil((nextExp.getTime()-Date.now())/86400000);
+  if(alertEl){
+    if(daysLeft<=0){
+      alertEl.innerHTML=`<div class="roll-alert-banner rab-red">&#128680; This month's BIT contract has expired. Make sure you're trading the next month's contract.</div>`;
+    } else if(daysLeft<=7){
+      alertEl.innerHTML=`<div class="roll-alert-banner rab-red">&#128680; <strong>Roll now</strong> — ${daysLeft} day${daysLeft===1?'':'s'} to expiry (${MONTH_NAMES[nextExp.getUTCMonth()]} ${nextExp.getUTCDate()}). Close this month and open next month to avoid forced settlement.</div>`;
+    } else if(daysLeft<=14){
+      alertEl.innerHTML=`<div class="roll-alert-banner rab-yellow">&#9888;&#65039; Roll window approaching — ${daysLeft} days to expiry. Plan to roll within the next 4–7 days.</div>`;
+    } else {
+      alertEl.innerHTML=`<div class="roll-alert-banner rab-green">&#9989; Contract healthy — ${daysLeft} days until expiry (${MONTH_NAMES[nextExp.getUTCMonth()]} ${nextExp.getUTCDate()}). No action needed yet.</div>`;
+    }
+  }
+}
+
+// ── BOTTOM ALREADY IN TOGGLE ─────────────────────────────────────────
+function toggleBottomAlreadyIn(btn){
+  const p=livePrice||0;
+  if(!p){btn.textContent='&#9201; Fetching price…';return;}
+  const milliBot=document.getElementById('milliBottom');
+  if(!milliBot) return;
+  const cur=parseFloat(milliBot.value)||0;
+  if(Math.abs(cur-p)<500){
+    // Already set to live price — toggle off (reset to default)
+    milliBot.value=44000;
+    btn.innerHTML='&#9989; Bottom already in?';
+    btn.classList.remove('tc-active');
+  } else {
+    milliBot.value=Math.round(p);
+    btn.innerHTML='&#128993; Bottom set to $'+Math.round(p).toLocaleString();
+    btn.classList.add('tc-active');
+  }
+  updateMilli();
+}
+
+// ── EXPORT / COPY PLAN ────────────────────────────────────────────────
+function exportPlan(btn){
+  const get=id=>{const el=document.getElementById(id);return el?el.value||el.textContent:'?';};
+  const lines=[
+    '════ BTC CYCLE TRADE PLAN ════',
+    `Generated: ${new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}`,
+    '',
+    '── ENTRY ──',
+    `Capital:     ${get('milliCapital')} (Reserve: ${get('milliReserve')})`,
+    `Leverage:    ${get('milliLev')}×`,
+    `Bottom:      $${Number(get('milliBottom')||0).toLocaleString()}`,
+    `Target:      $${Number(get('milliTop')||0).toLocaleString()}`,
+    `Tier count:  ${get('milliTiers')}`,
+    '',
+    '── PORTFOLIO ──',
+    `Avg entry:   ${get('milliAvgEntry')}`,
+    `Contracts:   ${get('milliContracts')}`,
+    `BTC exposure:${get('milliTotalBTC')}`,
+    `Margin used: ${get('milliMarginUsed')}`,
+    `At target:   ${get('milliAtTarget')}`,
+    `Profit:      ${get('milliProfit')}`,
+    '',
+    '── EXIT TARGETS ──',
+    `Exit 1: ${get('ep_pct1')}% at $${Number(get('ep_px1')||0).toLocaleString()}`,
+    `Exit 2: ${get('ep_pct2')}% at $${Number(get('ep_px2')||0).toLocaleString()}`,
+    `Exit 3: ${get('ep_pct3')}% at $${Number(get('ep_px3')||0).toLocaleString()}`,
+    '',
+    '── NOTES ──',
+    'Section 1256: 60% LT / 40% ST tax treatment.',
+    'Roll BIT contracts 1–2 weeks before last Friday of each month.',
+    'Coinbase market halts Fri 5PM – Sun 6PM ET. Reduce before weekends.',
+    'This is NOT financial advice. Never risk capital you cannot afford to lose.',
+  ];
+  const text=lines.join('\n');
+  if(navigator.clipboard){
+    navigator.clipboard.writeText(text).then(()=>{
+      btn.textContent='✅ Copied!';setTimeout(()=>{btn.innerHTML='&#128203; Copy Plan';},2200);
+    }).catch(()=>fallback(text,btn));
+  } else {fallback(text,btn);}
+  function fallback(t,b){
+    const ta=document.createElement('textarea');ta.value=t;
+    ta.style.cssText='position:fixed;top:-9999px;left:-9999px;opacity:0;';
+    document.body.appendChild(ta);ta.select();
+    try{document.execCommand('copy');b.textContent='✅ Copied!';}
+    catch{b.textContent='❌ Copy failed';}
+    setTimeout(()=>{b.innerHTML='&#128203; Copy Plan';},2200);
+    document.body.removeChild(ta);
+  }
+}
 
 // ── AUTO-PATCH HISTORICAL DATA FROM BINANCE ──────────────────────────
 async function patchHistoricalData(){
@@ -9568,6 +9864,18 @@ async function patchHistoricalData(){
   }
 }
 patchHistoricalData();
+
+// ── FOOTER ────────────────────────────────────────────────────────────
+(function(){
+  const footer=document.createElement('footer');
+  footer.className='dashboard-footer';
+  const now=new Date();
+  const buildStr=`Build ${now.getUTCFullYear()}-${String(now.getUTCMonth()+1).padStart(2,'0')}-${String(now.getUTCDate()).padStart(2,'0')} · claude-sonnet-4-6 · R²=0.954 N=3 cycles`;
+  footer.innerHTML=`
+    <span class="footer-build">&#9889; ${buildStr}</span>
+    <span class="footer-disc">&#9888; For educational &amp; research purposes only. Not financial advice. Past cycle patterns do not guarantee future results. Never deploy capital you cannot afford to lose entirely.</span>`;
+  document.body.appendChild(footer);
+})();
 </script>
 </body>
 </html>
