@@ -2635,6 +2635,7 @@ function updateMilli(){try{
       }
 
       const yRMin=liqPx>500?Math.floor(liqPx*0.90/5000)*5000:'auto';
+      const c1LogMin=Math.pow(10,Math.floor(Math.log10(Math.max(1,Math.min(...c1port)))));
 
       const c1ML=[
         {yAxis:capital,lineStyle:{color:'rgba(139,148,158,0.22)',type:'dashed',width:1},
@@ -2700,7 +2701,7 @@ function updateMilli(){try{
           axisPointer:{label:{formatter:p=>fmtDay(p.value),fontFamily:'JetBrains Mono,monospace',fontSize:9,backgroundColor:'#1c2128',borderColor:'#30363d',borderWidth:1}},
           splitLine:{lineStyle:{color:'rgba(33,38,45,0.5)'}},axisTick:{show:false},axisLine:{lineStyle:{color:'#21262d'}}},
         yAxis:[
-          {type:'log',logBase:10,min:1,name:'Portfolio ($)',nameTextStyle:{color:'#8b949e',fontSize:9,fontFamily:'monospace'},
+          {type:'log',logBase:10,min:c1LogMin,name:'Portfolio ($)',nameTextStyle:{color:'#8b949e',fontSize:9,fontFamily:'monospace'},
            axisLabel:{color:'#8b949e',fontSize:9,fontFamily:'monospace',showMaxLabel:false,formatter:v=>v>=1e6?'$'+(v/1e6).toFixed(1)+'M':v>=1000?'$'+Math.round(v/1000)+'K':'$'+Math.round(v)},
            axisPointer:{label:{formatter:p=>p.value>=1e6?'$'+(p.value/1e6).toFixed(1)+'M':p.value>=1000?'$'+Math.round(p.value/1000)+'K':'$'+Math.round(p.value),fontFamily:'monospace',fontSize:9,backgroundColor:'#1c2128',borderColor:'#30363d',borderWidth:1}},
            splitLine:{lineStyle:{color:'rgba(33,38,45,0.5)'}},axisTick:{show:false},axisLine:{show:false}},
@@ -2747,6 +2748,7 @@ function updateMilli(){try{
         bullS.pArr.map((y,i)=>[tsArr[i],y])
       ];
 
+      const c2LogMin=Math.pow(10,Math.floor(Math.log10(Math.max(1,Math.min(...portArr,...bearS.pArr,...bullS.pArr)))));
       const c2ML=[
         {xAxis:0,lineStyle:{color:'rgba(139,148,158,0.35)',type:'dashed',width:1.5},
          label:{show:true,formatter:'NOW',color:'rgba(139,148,158,0.6)',position:'insideStartTop',fontWeight:'bold',fontSize:9,fontFamily:'monospace',distance:4}},
@@ -2791,8 +2793,8 @@ function updateMilli(){try{
         xAxis:{type:'value',min:0,max:totalDays,
           axisLabel:{color:'#8b949e',fontSize:9,fontFamily:'JetBrains Mono,monospace',formatter:v=>{const d=new Date(nowMs+v*86400000);return MOS[d.getUTCMonth()]+" '"+String(d.getUTCFullYear()).slice(2);}},
           splitLine:{lineStyle:{color:'rgba(33,38,45,0.5)'}},axisTick:{show:false},axisLine:{lineStyle:{color:'#21262d'}}},
-        yAxis:{type:'log',logBase:10,name:'Portfolio Value ($)',nameTextStyle:{color:'#8b949e',fontSize:9,fontFamily:'monospace'},
-          axisLabel:{color:'#8b949e',fontSize:9,fontFamily:'monospace',formatter:v=>v>=1e6?'$'+(v/1e6).toFixed(2)+'M':'$'+Math.round(v/1000)+'K'},
+        yAxis:{type:'log',logBase:10,min:c2LogMin,name:'Portfolio Value ($)',nameTextStyle:{color:'#8b949e',fontSize:9,fontFamily:'monospace'},
+          axisLabel:{color:'#8b949e',fontSize:9,fontFamily:'monospace',showMaxLabel:false,formatter:v=>v>=1e6?'$'+(v/1e6).toFixed(2)+'M':v>=1000?'$'+Math.round(v/1000)+'K':'$'+Math.round(v)},
           splitLine:{lineStyle:{color:'rgba(33,38,45,0.5)'}},axisTick:{show:false},axisLine:{show:false}},
         visualMap:{show:false,type:'piecewise',seriesIndex:0,dimension:1,
           pieces:[{lte:capital*0.6,color:'#f85149'},{gt:capital*0.6,lte:capital,color:'#e3b341'},{gt:capital,lte:capital*4,color:'#58a6ff'},{gt:capital*4,color:'#3fb950'}]},
