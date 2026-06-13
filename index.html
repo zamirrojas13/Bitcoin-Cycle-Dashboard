@@ -2832,8 +2832,8 @@ function updateMilli(){try{
       if(_milliResizeC2){window.removeEventListener('resize',_milliResizeC2);}
       _milliResizeC2=()=>c2&&!c2.isDisposed()&&c2.resize();
       window.addEventListener('resize',_milliResizeC2);
-      // Force re-render: log axis + off-screen init can leave canvas blank
-      setTimeout(()=>{ if(el2&&!c2.isDisposed())c2.resize(); },120);
+      // Force re-render: log y-axis off-screen init leaves canvas blank; setOption triggers paint
+      setTimeout(()=>{ if(el2&&!c2.isDisposed()){c2.setOption({animation:false},{notMerge:false,silent:true});c2.resize();} },150);
 
       const togEl=document.getElementById('milliChartToggle');
       if(togEl) togEl.innerHTML=`
