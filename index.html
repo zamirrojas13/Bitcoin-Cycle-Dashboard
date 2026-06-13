@@ -895,7 +895,7 @@ hr.sep{border:none;border-top:1px solid #21262d;margin:16px 0;}
     <div class="milli-section-hdr">&#128201; Bear Phase — Entry Journey &amp; LIQ Risk <span style="color:#8b949e;font-size:11px;font-weight:400;margin-left:8px;">Full Timeline to ATH</span></div>
     <div class="milli-gc-wrap">
       <div class="milli-gc-stat-row" id="milliGcStats"><!-- JS --></div>
-      <div id="milliGrowthCanvas" style="height:520px;width:100%;"></div>
+      <div id="milliGrowthCanvas" style="height:380px;width:100%;"></div>
       <div class="milli-phase-legend" id="milliPhaseLegend"><!-- JS --></div>
     </div>
 
@@ -2617,10 +2617,22 @@ function updateMilli(){try{
       const prev=echarts.getInstanceByDom(el1);if(prev)prev.dispose();
       const c1=echarts.init(el1,null,{renderer:'canvas'});
 
-      // Show full timeline (entry through ATH ~2029)
-      const c1ts=tsArr;
-      const c1btc=btcArr;
-      const c1port=portArr;
+      // Extend timeline back to ATH (Oct 2025) so drawdown isn't at left edge
+      const athStartMs=new Date('2025-10-06').getTime();
+      const histDays=Math.round((nowMs-athStartMs)/86400000); // ~250 days of history
+      const histN=60;
+      const c1ts=[],c1btc=[],c1port=[];
+      for(let i=0;i<=histN;i++){
+        const frac=i/histN;
+        c1ts.push(-histDays+Math.round(histDays*frac));
+        c1btc.push(Math.round(126186+(btcArr[0]-126186)*frac));
+        c1port.push(capital||10000);
+      }
+      for(let i=1;i<tsArr.length;i++){
+        c1ts.push(tsArr[i]);
+        c1btc.push(btcArr[i]);
+        c1port.push(portArr[i]);
+      }
 
       const yRMin=liqPx>500?Math.floor(liqPx*0.90/5000)*5000:'auto';
 
@@ -2683,7 +2695,7 @@ function updateMilli(){try{
           }
         },
         grid:{left:72,right:80,top:28,bottom:50,containLabel:false},
-        xAxis:{type:'value',min:0,max:totalDays,
+        xAxis:{type:'value',min:-histDays,max:totalDays,
           axisLabel:{color:'#8b949e',fontSize:9,fontFamily:'JetBrains Mono,monospace',formatter:fmtDay},
           axisPointer:{label:{formatter:p=>fmtDay(p.value),fontFamily:'JetBrains Mono,monospace',fontSize:9,backgroundColor:'#1c2128',borderColor:'#30363d',borderWidth:1}},
           splitLine:{lineStyle:{color:'rgba(33,38,45,0.5)'}},axisTick:{show:false},axisLine:{lineStyle:{color:'#21262d'}}},
