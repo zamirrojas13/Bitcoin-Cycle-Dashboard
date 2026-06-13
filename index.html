@@ -2483,14 +2483,18 @@ function updateMilli(){try{
       const tH   = (h5Ms -nowMs)/span;
       const tA   = (athMs-nowMs)/span;
       if(t<=tB){
-        // Drawdown: smooth deceleration into the bottom
+        // Drawdown: smooth deceleration into bottom
         const f=t/tB; return price+(bottom-price)*ss(f);
       } else if(t<=tH){
-        // Base & early recovery: flat consolidation then gradual ramp (ease-in)
-        const f=(t-tB)/(tH-tB); return bottom+(h5Price-bottom)*f*f;
+        // Accumulation/base: exponential S-curve — on log scale shows genuine slow-base then ramp
+        // bottom * (h5Price/bottom)^ss(f)  →  log-linear S-shape matching real cycle accumulation
+        const f=(t-tB)/(tH-tB);
+        return bottom*Math.pow(Math.max(h5Price/bottom,1.0001),ss(f));
       } else if(t<=tA){
-        // Pre-halving + bull run: slow then parabolic into ATH
-        const f=(t-tH)/(tA-tH); return h5Price+(top-h5Price)*f*f;
+        // Bull run: exponential ease-out — fast off H5, decelerates into ATH (rounded mountain peak)
+        // h5Price * (top/h5Price)^(1-(1-f)²)  →  starts steep, rounds off at top
+        const f=(t-tH)/(tA-tH);
+        return h5Price*Math.pow(Math.max(top/h5Price,1.0001),1-(1-f)*(1-f));
       } else {
         // Post-ATH correction
         const f=Math.min(1,(t-tA)/(1-tA)); return top+(postAth-top)*ss(f);
@@ -2543,8 +2547,8 @@ function updateMilli(){try{
         const span=endMs-nowMs,t=Math.max(0,Math.min(1,(ms-nowMs)/span));
         const tB=(sBotMs-nowMs)/span,tH=(h5Ms-nowMs)/span,tA=(sAthMs-nowMs)/span;
         if(t<=tB){const f=t/tB;return price+(sBot-price)*ss(f);}
-        else if(t<=tH){const f=(t-tB)/(tH-tB);return sBot+(sH5Px-sBot)*f*f;}
-        else if(t<=tA){const f=(t-tH)/(tA-tH);return sH5Px+(sTop-sH5Px)*f*f;}
+        else if(t<=tH){const f=(t-tB)/(tH-tB);return sBot*Math.pow(Math.max(sH5Px/sBot,1.0001),ss(f));}
+        else if(t<=tA){const f=(t-tH)/(tA-tH);return sH5Px*Math.pow(Math.max(sTop/sH5Px,1.0001),1-(1-f)*(1-f));}
         else{const f=Math.min(1,(t-tA)/(1-tA));return sTop+(sPost-sTop)*ss(f);}
       }
       const bArr=tsArr.map(d=>Math.round(sBtcAt(nowMs+d*86400000)));
