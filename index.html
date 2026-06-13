@@ -2686,13 +2686,16 @@ function updateMilli(){try{
         grid:{left:72,right:80,top:28,bottom:50,containLabel:false},
         xAxis:{type:'value',min:0,max:365,
           axisLabel:{color:'#8b949e',fontSize:9,fontFamily:'JetBrains Mono,monospace',formatter:fmtDay},
+          axisPointer:{label:{formatter:p=>fmtDay(p.value),fontFamily:'JetBrains Mono,monospace',fontSize:9,backgroundColor:'#1c2128',borderColor:'#30363d',borderWidth:1}},
           splitLine:{lineStyle:{color:'rgba(33,38,45,0.5)'}},axisTick:{show:false},axisLine:{lineStyle:{color:'#21262d'}}},
         yAxis:[
-          {type:'log',logBase:10,name:'Portfolio ($)',nameTextStyle:{color:'#8b949e',fontSize:9,fontFamily:'monospace'},
-           axisLabel:{color:'#8b949e',fontSize:9,fontFamily:'monospace',formatter:v=>v>=1e6?'$'+(v/1e6).toFixed(1)+'M':'$'+Math.round(v/1000)+'K'},
+          {type:'log',logBase:10,min:1,name:'Portfolio ($)',nameTextStyle:{color:'#8b949e',fontSize:9,fontFamily:'monospace'},
+           axisLabel:{color:'#8b949e',fontSize:9,fontFamily:'monospace',formatter:v=>v>=1e6?'$'+(v/1e6).toFixed(1)+'M':v>=1000?'$'+Math.round(v/1000)+'K':'$'+Math.round(v)},
+           axisPointer:{label:{formatter:p=>p.value>=1e6?'$'+(p.value/1e6).toFixed(1)+'M':p.value>=1000?'$'+Math.round(p.value/1000)+'K':'$'+Math.round(p.value),fontFamily:'monospace',fontSize:9,backgroundColor:'#1c2128',borderColor:'#30363d',borderWidth:1}},
            splitLine:{lineStyle:{color:'rgba(33,38,45,0.5)'}},axisTick:{show:false},axisLine:{show:false}},
           {type:'value',name:'BTC Price',nameTextStyle:{color:'#6b7280',fontSize:9,fontFamily:'monospace'},
            axisLabel:{color:'#6b7280',fontSize:9,fontFamily:'monospace',formatter:v=>'$'+Math.round(v/1000)+'K'},
+           axisPointer:{label:{formatter:p=>'$'+Math.round(p.value/1000)+'K',fontFamily:'monospace',fontSize:9,backgroundColor:'#1c2128',borderColor:'#30363d',borderWidth:1}},
            position:'right',splitLine:{show:false},axisTick:{show:false},axisLine:{show:false},min:yRMin}
         ],
         visualMap:{show:false,type:'piecewise',seriesIndex:0,dimension:1,
