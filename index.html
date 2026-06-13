@@ -2482,11 +2482,11 @@ function updateMilli(){try{
         // Drawdown: smooth deceleration into the bottom
         const f=t/tB; return price+(bottom-price)*ss(f);
       } else if(t<=tH){
-        // Base & early recovery: slow grind up (square root curve)
-        const f=(t-tB)/(tH-tB); return bottom+(h5Price-bottom)*Math.sqrt(f);
+        // Base & early recovery: flat consolidation then gradual ramp (ease-in)
+        const f=(t-tB)/(tH-tB); return bottom+(h5Price-bottom)*f*f;
       } else if(t<=tA){
-        // Pre-halving + bull run: accelerating into ATH
-        const f=(t-tH)/(tA-tH); return h5Price+(top-h5Price)*(1-(1-f)*(1-f));
+        // Pre-halving + bull run: slow then parabolic into ATH
+        const f=(t-tH)/(tA-tH); return h5Price+(top-h5Price)*f*f;
       } else {
         // Post-ATH correction
         const f=Math.min(1,(t-tA)/(1-tA)); return top+(postAth-top)*ss(f);
@@ -2539,8 +2539,8 @@ function updateMilli(){try{
         const span=endMs-nowMs,t=Math.max(0,Math.min(1,(ms-nowMs)/span));
         const tB=(sBotMs-nowMs)/span,tH=(h5Ms-nowMs)/span,tA=(sAthMs-nowMs)/span;
         if(t<=tB){const f=t/tB;return price+(sBot-price)*ss(f);}
-        else if(t<=tH){const f=(t-tB)/(tH-tB);return sBot+(sH5Px-sBot)*Math.sqrt(f);}
-        else if(t<=tA){const f=(t-tH)/(tA-tH);return sH5Px+(sTop-sH5Px)*(1-(1-f)*(1-f));}
+        else if(t<=tH){const f=(t-tB)/(tH-tB);return sBot+(sH5Px-sBot)*f*f;}
+        else if(t<=tA){const f=(t-tH)/(tA-tH);return sH5Px+(sTop-sH5Px)*f*f;}
         else{const f=Math.min(1,(t-tA)/(1-tA));return sTop+(sPost-sTop)*ss(f);}
       }
       const bArr=tsArr.map(d=>Math.round(sBtcAt(nowMs+d*86400000)));
