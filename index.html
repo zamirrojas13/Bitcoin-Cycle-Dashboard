@@ -2778,7 +2778,7 @@ function updateMilli(){try{
 
       c2.setOption({
         backgroundColor:'transparent',
-        animation:true,animationDuration:900,animationEasing:'cubicOut',
+        animation:false,
         tooltip:{
           trigger:'axis',
           axisPointer:{type:'cross',crossStyle:{color:'rgba(48,54,61,0.8)'},lineStyle:{color:'rgba(48,54,61,0.5)'}},
@@ -2808,7 +2808,8 @@ function updateMilli(){try{
           axisLabel:{color:'#8b949e',fontSize:9,fontFamily:'JetBrains Mono,monospace',formatter:v=>{const d=new Date(nowMs+v*86400000);return MOS[d.getUTCMonth()]+" '"+String(d.getUTCFullYear()).slice(2);}},
           splitLine:{lineStyle:{color:'rgba(33,38,45,0.5)'}},axisTick:{show:false},axisLine:{lineStyle:{color:'#21262d'}}},
         yAxis:{type:'log',logBase:10,min:c2LogMin,name:'Portfolio Value ($)',nameTextStyle:{color:'#8b949e',fontSize:9,fontFamily:'monospace'},
-          axisLabel:{color:'#8b949e',fontSize:9,fontFamily:'monospace',showMaxLabel:false,formatter:v=>v>=1e6?'$'+(v/1e6).toFixed(2)+'M':v>=1000?'$'+Math.round(v/1000)+'K':'$'+Math.round(v)},
+          axisLabel:{color:'#8b949e',fontSize:9,fontFamily:'monospace',showMaxLabel:false,formatter:v=>v>=1e6?'$'+(v/1e6).toFixed(1)+'M':v>=1000?'$'+Math.round(v/1000)+'K':'$'+Math.round(v)},
+          axisPointer:{label:{formatter:p=>p.value>=1e6?'$'+(p.value/1e6).toFixed(1)+'M':p.value>=1000?'$'+Math.round(p.value/1000)+'K':'$'+Math.round(p.value),fontFamily:'monospace',fontSize:9,backgroundColor:'#1c2128',borderColor:'#30363d',borderWidth:1}},
           splitLine:{lineStyle:{color:'rgba(33,38,45,0.5)'}},axisTick:{show:false},axisLine:{show:false}},
         visualMap:{show:false,type:'piecewise',seriesIndex:0,dimension:1,
           pieces:[{lte:capital*0.6,color:'#f85149'},{gt:capital*0.6,lte:capital,color:'#e3b341'},{gt:capital,lte:capital*4,color:'#58a6ff'},{gt:capital*4,color:'#3fb950'}]},
@@ -2831,6 +2832,8 @@ function updateMilli(){try{
       if(_milliResizeC2){window.removeEventListener('resize',_milliResizeC2);}
       _milliResizeC2=()=>c2&&!c2.isDisposed()&&c2.resize();
       window.addEventListener('resize',_milliResizeC2);
+      // Force re-render: log axis + off-screen init can leave canvas blank
+      setTimeout(()=>{ if(el2&&!c2.isDisposed())c2.resize(); },120);
 
       const togEl=document.getElementById('milliChartToggle');
       if(togEl) togEl.innerHTML=`
