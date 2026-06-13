@@ -2090,6 +2090,7 @@ function updateMilli(){try{
 
   let totalMargin=0,totalBTC=0,totalContracts=0,totalPnL=0,weightedEntry=0;
   let tierHTML='';
+  const allTiersSkipped=TIERS.every(t=>t.price<bottom);
 
   TIERS.forEach(t=>{
     // Apply custom price override if set
@@ -2105,17 +2106,19 @@ function updateMilli(){try{
     const dist       = price-tPrice;
     const willFire   = tPrice>=bottom;
     const status     = !willFire?'skip':(tPrice>=price?'fired':(dist<6000?'close':'waiting'));
-    // Store for growth chart
-    t.contracts = contracts; t.entryPrice = tPrice; t.price = tPrice;
+    // Store for growth chart (zero out skipped tiers so chart and minBuffer ignore them)
+    t.contracts = willFire ? contracts : 0; t.entryPrice = tPrice; t.price = tPrice;
     const statusLbl  = !willFire?'&#8212; SKIPPED':(tPrice>=price?'&#10003; FIRED':(status==='close'?'CLOSE':'WAITING'));
     const isCustomP  = window.milliCustomPrices&&window.milliCustomPrices[t.n];
     const isCustomC  = window.milliCustomContracts&&window.milliCustomContracts[t.n]!==undefined;
 
-    totalMargin   += marginReq;
-    totalBTC      += btcExp;
-    totalContracts+= contracts;
-    totalPnL      += pnl;
-    weightedEntry += btcExp*tPrice;
+    if(willFire){
+      totalMargin   += marginReq;
+      totalBTC      += btcExp;
+      totalContracts+= contracts;
+      totalPnL      += pnl;
+      weightedEntry += btcExp*tPrice;
+    }
 
     if(!willFire){
       tierHTML+=`
@@ -2129,7 +2132,7 @@ function updateMilli(){try{
         <div class="mtc-row"><span class="mtc-rk">Entry price</span><span class="mtc-rv" style="color:#484f58;">$${tPrice.toLocaleString()}</span></div>
         <div class="mtc-row"><span class="mtc-rk">BIT contracts</span><span class="mtc-rv" style="color:#484f58;">0 — capital redistributed</span></div>
       </div>
-      <div class="mtc-note">BTC won't reach $${tPrice.toLocaleString()} at a $${Math.round(bottom).toLocaleString()} cycle bottom. This tier's capital flows to the active tiers above.</div>
+      <div class="mtc-note">BTC won't reach $${tPrice.toLocaleString()} at a $${Math.round(bottom).toLocaleString()} cycle bottom. ${allTiersSkipped?'Lower the expected bottom price to activate tiers.':'This tier\'s capital flows to the active tiers above.'}</div>
     </div>`;
     } else {
       tierHTML+=`
@@ -2191,6 +2194,7 @@ function updateMilli(){try{
   let marginHTML='';
   const GAP3=3000,GAP5=5000;
   TIERS.forEach(t=>{
+    if(t.price<bottom) return; // tier won't fire — exclude from margin table
     const ep         = t.price;
     const alloc      = deployable*t.pct/100;
     const contracts  = Math.max(0,Math.floor(alloc*lev/(ep*0.01)));
@@ -2236,7 +2240,7 @@ function updateMilli(){try{
   };
   if(totalContracts===0){
     document.getElementById('milliBanner').innerHTML=
-      `<div class="margin-risk-banner mrb-green"><span class="mrb-icon">&#128161;</span><span><strong>No positions deployed.</strong> Your full $${capital.toLocaleString()} is sitting as reserve — no liquidation risk. ${deployable===0?'Reserve equals total capital. Lower the reserve or increase capital to activate the entry plan.':''}</span></div>`;
+      `<div class="margin-risk-banner mrb-green"><span class="mrb-icon">&#128161;</span><span><strong>No positions deployed.</strong> ${allTiersSkipped?`All selected tier prices are below your expected $${Math.round(bottom/1000)}K bottom — BTC won't drop that far. Raise the bottom price or add higher tiers to deploy capital.`:deployable===0?`Reserve equals total capital. Lower the reserve or increase capital to activate the entry plan.`:`Your full $${capital.toLocaleString()} is sitting as reserve — no liquidation risk.`}</span></div>`;
     document.getElementById('milliMarginRec').innerHTML=
       `<div class="margin-rec-card" style="grid-column:1/-1;text-align:center;color:#6b7280;">Enter capital above your reserve to see risk recommendations.</div>`;
   } else {
@@ -2744,17 +2748,17 @@ function updateMilli(){try{
       const prev=echarts.getInstanceByDom(el2);if(prev)prev.dispose();
       const c2=echarts.init(el2,null,{renderer:'canvas'});
       window._milliProfitChart=c2;
-      window._milliProfitVis=window._milliProfitVis||[true,false,false];
-      window._milliProfitData=[
-        portArr.map((y,i)=>[tsArr[i],y]),
-        bearS.pArr.map((y,i)=>[tsArr[i],y]),
-        bullS.pArr.map((y,i)=>[tsArr[i],y])
-      ];
+      window._milliProfitVis=window._milliProfitVis||[true,true,true];
 
       const c2LogMin=Math.max(capital*0.3,1);
       const portArrC=portArr.map(v=>Math.max(c2LogMin,v));
       const bearPC=bearS.pArr.map(v=>Math.max(c2LogMin,v));
       const bullPC=bullS.pArr.map(v=>Math.max(c2LogMin,v));
+      window._milliProfitData=[
+        portArrC.map((y,i)=>[tsArr[i],y]),
+        bearPC.map((y,i)=>[tsArr[i],y]),
+        bullPC.map((y,i)=>[tsArr[i],y])
+      ];
       const c2ML=[
         {xAxis:0,lineStyle:{color:'rgba(139,148,158,0.35)',type:'dashed',width:1.5},
          label:{show:true,formatter:'NOW',color:'rgba(139,148,158,0.6)',position:'insideStartTop',fontWeight:'bold',fontSize:9,fontFamily:'monospace',distance:4}},
