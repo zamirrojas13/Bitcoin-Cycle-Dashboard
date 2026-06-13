@@ -899,13 +899,6 @@ hr.sep{border:none;border-top:1px solid #21262d;margin:16px 0;}
       <div class="milli-phase-legend" id="milliPhaseLegend"><!-- JS --></div>
     </div>
 
-    <div class="milli-section-hdr" style="margin-top:20px;">&#128640; Profit Projection — Bull Run to Target <span style="color:#8b949e;font-size:11px;font-weight:400;margin-left:8px;">Full Horizon</span></div>
-    <div class="milli-gc-wrap">
-      <div class="milli-chart-toggle" id="milliChartToggle"><!-- JS --></div>
-      <div id="milliProfitCanvas" style="height:520px;width:100%;"></div>
-      <div class="milli-phase-legend" id="milliPhaseLegend2"><!-- JS --></div>
-    </div>
-
     <!-- SCENARIOS TABLE -->
     <div class="milli-section-hdr">&#127919; Outcome Scenarios</div>
     <div class="milli-sc-wrap">
@@ -2459,8 +2452,7 @@ function updateMilli(){try{
   // ── C5 TRADE TIMELINE CHARTS ────────────────────────────────────────
   (function buildTimelineChart(){
     const canvas=document.getElementById('milliGrowthCanvas');
-    const canvas2=document.getElementById('milliProfitCanvas');
-    if(!canvas&&!canvas2) return;
+    if(!canvas) return;
 
     // ── Key dates (from dashboard research: 4-cycle R²=0.954 model) ──
     const nowMs    = Date.now();
@@ -2531,42 +2523,6 @@ function updateMilli(){try{
       portArr.push(Math.max(1,Math.round(v))); // min 1 — prevents log(0) on log-scale axis
     }
 
-    // ── Scenario path generator ──────────────────────────────────────
-    function makeScenPaths(sBot,sBotMs,sH5Mult,sTop,sAthMs){
-      // Per-scenario redistribution: deploy 100% of capital through tiers that fire in this scenario
-      const sFiringSum=TIERS.reduce((s,t,i)=>t.price>=sBot?s+_origPct[i]:s,0);
-      const sContr=TIERS.map((t,i)=>{
-        if(t.price<sBot)return 0;
-        const pEff=sFiringSum>0?_origPct[i]/sFiringSum*100:0;
-        const ep=(window.milliCustomPrices&&window.milliCustomPrices[t.n])||t.price;
-        const cust=window.milliCustomContracts&&window.milliCustomContracts[t.n]!==undefined;
-        return cust?window.milliCustomContracts[t.n]:Math.max(0,Math.floor(deployable*pEff/100*lev/(ep*0.01)));
-      });
-      const sH5Px=Math.min(sBot*sH5Mult,126000*1.06);
-      const sPost=sTop*0.70;
-      function sBtcAt(ms){
-        const span=endMs-nowMs,t=Math.max(0,Math.min(1,(ms-nowMs)/span));
-        const tB=(sBotMs-nowMs)/span,tH=(h5Ms-nowMs)/span,tA=(sAthMs-nowMs)/span;
-        if(t<=tB){const f=t/tB;return price+(sBot-price)*ss(f);}
-        else if(t<=tH){const f=(t-tB)/(tH-tB);return sBot*Math.pow(Math.max(sH5Px/sBot,1.0001),ss(f));}
-        else if(t<=tA){const f=(t-tH)/(tA-tH);return sH5Px*Math.pow(Math.max(sTop/sH5Px,1.0001),1-(1-f)*(1-f));}
-        else{const f=Math.min(1,(t-tA)/(1-tA));return sTop+(sPost-sTop)*ss(f);}
-      }
-      const bArr=tsArr.map(d=>Math.round(sBtcAt(nowMs+d*86400000)));
-      {const mi=bArr.indexOf(Math.min(...bArr));bArr[mi]=sBot;}
-      const pArr=[]; const ent=new Set(); let rm2=bArr[0];
-      for(let i=0;i<=N;i++){
-        const P=bArr[i]; rm2=Math.min(rm2,P);
-        TIERS.forEach((t,idx)=>{if(!ent.has(idx)&&sContr[idx]>0&&rm2<=t.price)ent.add(idx);});
-        let v=capital; ent.forEach(idx=>{const t=TIERS[idx];v+=sContr[idx]*0.01*(P-t.price);});
-        pArr.push(Math.max(1,Math.round(v))); // min 1 for log-scale axis
-      }
-      return{bArr,pArr};
-    }
-    // Bear: $35K bottom (log-compression ×0.48 of C4 gain → $155K ATH)
-    const bearS=makeScenPaths(35000,new Date('2026-12-01').getTime(),2.6,155000,new Date('2030-04-01').getTime());
-    // Bull: same bottom, $380K ATH (power-law upper band, ETF supercycle)
-    const bullS=makeScenPaths(bottom,botMs,3.0,380000,new Date('2029-06-01').getTime());
 
     // ── Derived key-point stats ───────────────────────────────────────
     const msToDay = ms=>Math.round((ms-nowMs)/86400000);
@@ -2744,110 +2700,9 @@ function updateMilli(){try{
         <span class="mpl-item"><span class="mpl-dot" style="background:rgba(248,81,73,0.65)"></span>LIQ price</span>
         <span class="mpl-item"><span class="mpl-dot" style="background:rgba(88,166,255,0.7)"></span>Tier entries</span>`;
       // Force resize — ECharts negative x-axis min requires a re-render after init
-      setTimeout(()=>{ if(el1)echarts.getInstanceByDom(el1)?.resize(); if(el2)echarts.getInstanceByDom(el2)?.resize(); },80);
+      setTimeout(()=>{ if(el1)echarts.getInstanceByDom(el1)?.resize(); },80);
     }
 
-    // ── CHART 2: ECharts — Profit Projection (Full Horizon) ──────────
-    const el2=document.getElementById('milliProfitCanvas');
-    if(el2){
-      const prev=echarts.getInstanceByDom(el2);if(prev)prev.dispose();
-      const c2=echarts.init(el2,null,{renderer:'canvas'});
-      window._milliProfitChart=c2;
-      window._milliProfitVis=window._milliProfitVis||[true,true,true];
-
-      const c2LogMin=Math.max(capital*0.3,1);
-      const portArrC=portArr.map(v=>Math.max(c2LogMin,v));
-      const bearPC=bearS.pArr.map(v=>Math.max(c2LogMin,v));
-      const bullPC=bullS.pArr.map(v=>Math.max(c2LogMin,v));
-      window._milliProfitData=[
-        portArrC.map((y,i)=>[tsArr[i],y]),
-        bearPC.map((y,i)=>[tsArr[i],y]),
-        bullPC.map((y,i)=>[tsArr[i],y])
-      ];
-      const c2ML=[
-        {xAxis:0,lineStyle:{color:'rgba(139,148,158,0.35)',type:'dashed',width:1.5},
-         label:{show:true,formatter:'NOW',color:'rgba(139,148,158,0.6)',position:'insideStartTop',fontWeight:'bold',fontSize:9,fontFamily:'monospace',distance:4}},
-        {xAxis:botDay,lineStyle:{color:'rgba(248,81,73,0.5)',type:'dashed',width:1.5},
-         label:{show:true,formatter:'BOT',color:'#f85149',position:'insideStartTop',fontWeight:'bold',fontSize:9,fontFamily:'monospace',distance:4}},
-        {xAxis:h5Day,lineStyle:{color:'rgba(210,147,34,0.7)',type:'dashed',width:1.5},
-         label:{show:true,formatter:'H5',color:'#d29922',position:'insideStartTop',fontWeight:'bold',fontSize:9,fontFamily:'monospace',distance:4}},
-        {xAxis:athDay,lineStyle:{color:'rgba(63,185,80,0.7)',type:'dashed',width:1.5},
-         label:{show:true,formatter:'EXIT',color:'#3fb950',position:'insideStartTop',fontWeight:'bold',fontSize:9,fontFamily:'monospace',distance:4}},
-        {yAxis:capital,lineStyle:{color:'rgba(139,148,158,0.22)',type:'dashed',width:1},
-         label:{show:true,formatter:'Capital $'+Math.round(capital/1000)+'K',color:'rgba(139,148,158,0.45)',position:'insideStartTop',fontSize:9,fontFamily:'monospace',distance:4}}
-      ];
-
-      c2.setOption({
-        backgroundColor:'transparent',
-        animation:false,
-        tooltip:{
-          trigger:'axis',
-          axisPointer:{type:'cross',crossStyle:{color:'rgba(48,54,61,0.8)'},lineStyle:{color:'rgba(48,54,61,0.5)'}},
-          backgroundColor:'#0d1117',borderColor:'#30363d',borderWidth:1,padding:12,
-          formatter:function(params){
-            const dayVal=params[0].axisValue;
-            const ms2=nowMs+dayVal*86400000;
-            const d=new Date(ms2);
-            const phase=ms2<botMs?'📉 Drawdown':ms2<h5Ms?'🔄 Recovery':ms2<athMs?'🚀 Bull Run':'📊 Post-ATH';
-            let h='<div style="font-family:JetBrains Mono,monospace;font-size:11px;min-width:215px">';
-            h+='<div style="color:#e6edf3;font-weight:700;margin-bottom:5px">'+MOS[d.getUTCMonth()]+' '+d.getUTCFullYear()+'  ·  '+phase+'</div>';
-            h+='<div style="border-top:1px solid #30363d;margin:4px 0 5px"></div>';
-            const cols={'Your Plan':'#58a6ff','Bear Case':'#f85149','Bull Case':'#3fb950'};
-            params.forEach(p=>{
-              if(!p.value) return;
-              const v=p.value[1],pnl=Math.round(v-capital),pct=capital>0?((v-capital)/capital*100).toFixed(1):0;
-              h+='<div style="margin-top:3px"><span style="color:'+(cols[p.seriesName]||'#c9d1d9')+';font-weight:600">'+p.seriesName+':</span> <b style="color:#e6edf3">$'+Math.round(v).toLocaleString()+'</b></div>';
-              h+='<div style="color:'+(v>=capital?'#3fb950':'#f85149')+';margin-left:8px">'+(pnl>=0?'+':'')+Math.abs(pnl).toLocaleString()+' ('+(+pct>=0?'+':'')+pct+'%)</div>';
-            });
-            const daysLeft=Math.round((athMs-ms2)/86400000);
-            if(daysLeft>0){h+='<div style="border-top:1px solid #30363d;margin:5px 0 3px"></div><div style="color:#8b949e">⏱ '+Math.round(daysLeft/30)+' mo to exit ('+fmtMo(athMs)+')</div>';}
-            return h+'</div>';
-          }
-        },
-        grid:{left:72,right:30,top:28,bottom:50,containLabel:false},
-        xAxis:{type:'value',min:0,max:totalDays,
-          axisLabel:{color:'#8b949e',fontSize:9,fontFamily:'JetBrains Mono,monospace',formatter:v=>{const d=new Date(nowMs+v*86400000);return MOS[d.getUTCMonth()]+" '"+String(d.getUTCFullYear()).slice(2);}},
-          splitLine:{lineStyle:{color:'rgba(33,38,45,0.5)'}},axisTick:{show:false},axisLine:{lineStyle:{color:'#21262d'}}},
-        yAxis:{type:'log',logBase:10,min:c2LogMin,name:'Portfolio Value ($)',nameTextStyle:{color:'#8b949e',fontSize:9,fontFamily:'monospace'},
-          axisLabel:{color:'#8b949e',fontSize:9,fontFamily:'monospace',showMaxLabel:false,formatter:v=>v>=1e6?'$'+(v/1e6).toFixed(1)+'M':v>=1000?'$'+Math.round(v/1000)+'K':'$'+Math.round(v)},
-          axisPointer:{label:{formatter:p=>p.value>=1e6?'$'+(p.value/1e6).toFixed(1)+'M':p.value>=1000?'$'+Math.round(p.value/1000)+'K':'$'+Math.round(p.value),fontFamily:'monospace',fontSize:9,backgroundColor:'#1c2128',borderColor:'#30363d',borderWidth:1}},
-          splitLine:{lineStyle:{color:'rgba(33,38,45,0.5)'}},axisTick:{show:false},axisLine:{show:false}},
-        visualMap:{show:false,type:'piecewise',seriesIndex:0,dimension:1,
-          pieces:[{lte:capital*0.6,color:'#f85149'},{gt:capital*0.6,lte:capital,color:'#e3b341'},{gt:capital,lte:capital*4,color:'#58a6ff'},{gt:capital*4,color:'#3fb950'}]},
-        series:[
-          {name:'Your Plan',type:'line',
-           data:window._milliProfitVis[0]?portArrC.map((y,i)=>[tsArr[i],y]):[],
-           smooth:0.3,symbol:'none',lineStyle:{width:2.5},
-           areaStyle:{color:{type:'linear',x:0,y:0,x2:0,y2:1,colorStops:[{offset:0,color:'rgba(88,166,255,0.12)'},{offset:1,color:'rgba(88,166,255,0)'}]}},
-           markLine:{silent:true,symbol:'none',lineStyle:{type:'dashed'},label:{show:false},data:c2ML}},
-          {name:'Bear Case',type:'line',
-           data:window._milliProfitVis[1]?bearPC.map((y,i)=>[tsArr[i],y]):[],
-           smooth:0.3,symbol:'none',
-           lineStyle:{color:'rgba(248,81,73,0.75)',width:1.8,type:'dashed'},itemStyle:{color:'rgba(248,81,73,0.75)'}},
-          {name:'Bull Case',type:'line',
-           data:window._milliProfitVis[2]?bullPC.map((y,i)=>[tsArr[i],y]):[],
-           smooth:0.3,symbol:'none',
-           lineStyle:{color:'rgba(63,185,80,0.75)',width:1.8,type:'dashed'},itemStyle:{color:'rgba(63,185,80,0.75)'}}
-        ]
-      });
-      if(_milliResizeC2){window.removeEventListener('resize',_milliResizeC2);}
-      _milliResizeC2=()=>c2&&!c2.isDisposed()&&c2.resize();
-      window.addEventListener('resize',_milliResizeC2);
-      // Force re-render: log y-axis off-screen init leaves canvas blank; setOption triggers paint
-      setTimeout(()=>{ if(el2&&!c2.isDisposed()){c2.setOption({animation:false},{notMerge:false,silent:true});c2.resize();} },150);
-
-      const togEl=document.getElementById('milliChartToggle');
-      if(togEl) togEl.innerHTML=`
-        <button class="mct-btn${window._milliProfitVis[0]?' mct-active':''}" onclick="window.toggleMilliProfit(0,this)">💼 Your Plan ($${Math.round(top/1000)}K)</button>
-        <button class="mct-btn${window._milliProfitVis[1]?' mct-active':''}" onclick="window.toggleMilliProfit(1,this)">📉 Bear Case ($155K)</button>
-        <button class="mct-btn${window._milliProfitVis[2]?' mct-active':''}" onclick="window.toggleMilliProfit(2,this)">🚀 Bull Case ($380K)</button>`;
-      const legEl2=document.getElementById('milliPhaseLegend2');
-      if(legEl2) legEl2.innerHTML=`
-        <span class="mpl-item"><span class="mpl-dot" style="background:#f85149"></span>Drawdown</span>
-        <span class="mpl-item"><span class="mpl-dot" style="background:#e3b341"></span>Recovery</span>
-        <span class="mpl-item"><span class="mpl-dot" style="background:#58a6ff"></span>Bull run</span>
-        <span class="mpl-item"><span class="mpl-dot" style="background:#3fb950"></span>ATH profit zone</span>`;
-    }
   })();
 
   // ── EXIT PLANNER & ROLL SCHEDULE (wired from updateMilli context) ─
@@ -2857,6 +2712,7 @@ function updateMilli(){try{
 window.milliCustomPrices    = window.milliCustomPrices    || {};
 window.milliCustomContracts = window.milliCustomContracts || {};
 window.milliSetCustomPrice = function(n,val){
+  if(val===''||val===null) return; // user is mid-edit, don't re-render
   const v=parseFloat(val);
   if(v>0) window.milliCustomPrices[n]=v; else delete window.milliCustomPrices[n];
   updateMilli();
@@ -2872,18 +2728,6 @@ window.milliResetCustom = function(){
   updateMilli();
 };
 updateMilli();
-
-window.toggleMilliProfit=function(dsIdx,btn){
-  const c=window._milliProfitChart;
-  if(!c||c.isDisposed()) return;
-  window._milliProfitVis=window._milliProfitVis||[true,false,false];
-  window._milliProfitVis[dsIdx]=!window._milliProfitVis[dsIdx];
-  const data=window._milliProfitData||[[],[],[]];
-  const upd=[{},{},{}];
-  upd[dsIdx]={data:window._milliProfitVis[dsIdx]?data[dsIdx]:[]};
-  c.setOption({series:upd},false);
-  btn.classList.toggle('mct-active');
-};
 
 // ── EXIT PLANNER ────────────────────────────────────────────────────
 function buildExitPlanner(TIERS, totalContracts, avgEntry, lev, capital, curPrice){
