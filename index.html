@@ -2635,7 +2635,7 @@ function updateMilli(){try{
       }
 
       const yRMin=liqPx>500?Math.floor(liqPx*0.90/5000)*5000:'auto';
-      const c1LogMin=Math.pow(10,Math.floor(Math.log10(Math.max(1,Math.min(...c1port)))));
+      const c1LogMin=Math.max(capital*0.3,1);
 
       const c1ML=[
         {yAxis:capital,lineStyle:{color:'rgba(139,148,158,0.22)',type:'dashed',width:1},
@@ -2714,11 +2714,11 @@ function updateMilli(){try{
           pieces:[{lte:capital*0.6,color:'#f85149'},{gt:capital*0.6,lte:capital,color:'#e3b341'},{gt:capital,lte:capital*4,color:'#58a6ff'},{gt:capital*4,color:'#3fb950'}]},
         series:[
           {name:'Portfolio',type:'line',yAxisIndex:0,data:c1port.map((y,i)=>[c1ts[i],y]),
-           smooth:0.35,symbol:'none',lineStyle:{width:2.5},
+           smooth:0.65,symbol:'none',lineStyle:{width:2.5},
            areaStyle:{color:{type:'linear',x:0,y:0,x2:0,y2:1,colorStops:[{offset:0,color:'rgba(88,166,255,0.09)'},{offset:1,color:'rgba(88,166,255,0)'}]}},
            markLine:{silent:true,symbol:'none',lineStyle:{type:'dashed',width:1},label:{show:false},data:c1ML}},
           {name:'BTC Price',type:'line',yAxisIndex:1,data:c1btc.map((y,i)=>[c1ts[i],y]),
-           smooth:0.35,symbol:'none',lineStyle:{color:'rgba(255,255,255,0.13)',width:1.5},
+           smooth:0.65,symbol:'none',lineStyle:{color:'rgba(255,255,255,0.13)',width:1.5},
            markLine:btcML.length?{silent:true,symbol:'none',data:btcML}:undefined}
         ]
       });
@@ -2748,7 +2748,7 @@ function updateMilli(){try{
         bullS.pArr.map((y,i)=>[tsArr[i],y])
       ];
 
-      const c2LogMin=Math.pow(10,Math.floor(Math.log10(Math.max(1,Math.min(...portArr,...bearS.pArr,...bullS.pArr)))));
+      const c2LogMin=Math.max(capital*0.3,1);
       const c2ML=[
         {xAxis:0,lineStyle:{color:'rgba(139,148,158,0.35)',type:'dashed',width:1.5},
          label:{show:true,formatter:'NOW',color:'rgba(139,148,158,0.6)',position:'insideStartTop',fontWeight:'bold',fontSize:9,fontFamily:'monospace',distance:4}},
@@ -2801,16 +2801,16 @@ function updateMilli(){try{
         series:[
           {name:'Your Plan',type:'line',
            data:window._milliProfitVis[0]?portArr.map((y,i)=>[tsArr[i],y]):[],
-           smooth:0.35,symbol:'none',lineStyle:{width:2.5},
+           smooth:0.65,symbol:'none',lineStyle:{width:2.5},
            areaStyle:{color:{type:'linear',x:0,y:0,x2:0,y2:1,colorStops:[{offset:0,color:'rgba(88,166,255,0.12)'},{offset:1,color:'rgba(88,166,255,0)'}]}},
            markLine:{silent:true,symbol:'none',lineStyle:{type:'dashed'},label:{show:false},data:c2ML}},
           {name:'Bear Case',type:'line',
            data:window._milliProfitVis[1]?bearS.pArr.map((y,i)=>[tsArr[i],y]):[],
-           smooth:0.35,symbol:'none',
+           smooth:0.65,symbol:'none',
            lineStyle:{color:'rgba(248,81,73,0.75)',width:1.8,type:'dashed'},itemStyle:{color:'rgba(248,81,73,0.75)'}},
           {name:'Bull Case',type:'line',
            data:window._milliProfitVis[2]?bullS.pArr.map((y,i)=>[tsArr[i],y]):[],
-           smooth:0.35,symbol:'none',
+           smooth:0.65,symbol:'none',
            lineStyle:{color:'rgba(63,185,80,0.75)',width:1.8,type:'dashed'},itemStyle:{color:'rgba(63,185,80,0.75)'}}
         ]
       });
