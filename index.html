@@ -892,7 +892,7 @@ hr.sep{border:none;border-top:1px solid #21262d;margin:16px 0;}
     </div>
 
     <!-- TIMELINE CHARTS -->
-    <div class="milli-section-hdr">&#128201; Bear Phase — Entry Journey &amp; LIQ Risk <span style="color:#8b949e;font-size:11px;font-weight:400;margin-left:8px;">1 Year View</span></div>
+    <div class="milli-section-hdr">&#128201; Bear Phase — Entry Journey &amp; LIQ Risk <span style="color:#8b949e;font-size:11px;font-weight:400;margin-left:8px;">Full Timeline to ATH</span></div>
     <div class="milli-gc-wrap">
       <div class="milli-gc-stat-row" id="milliGcStats"><!-- JS --></div>
       <div id="milliGrowthCanvas" style="height:380px;width:100%;"></div>
@@ -2605,7 +2605,7 @@ function updateMilli(){try{
     // ── ECharts key days ──────────────────────────────────────────────
     const botDay=msToDay(botMs),h5Day=msToDay(h5Ms),athDay=msToDay(athMs);
 
-    // ── CHART 1: ECharts — Bear Entry Phase (1 Year) ─────────────────
+    // ── CHART 1: ECharts — Full Timeline to ATH ──────────────────────
     const fmtDay=v=>{const d=new Date(nowMs+v*86400000);return MOS[d.getUTCMonth()]+" '"+String(d.getUTCFullYear()).slice(2);};
     const tierEntryDays=TIERS.filter(t=>t.contracts>0).sort((a,b)=>b.price-a.price).map((t,i)=>{
       for(let k=0;k<btcArr.length;k++){if(btcArr[k]<=t.price)return{n:t.n,day:tsArr[k],i};}
@@ -2617,11 +2617,10 @@ function updateMilli(){try{
       const prev=echarts.getInstanceByDom(el1);if(prev)prev.dispose();
       const c1=echarts.init(el1,null,{renderer:'canvas'});
 
-      // Clip to 1Y bear phase so BTC right axis auto-scales to bear range only
-      const c1Cutoff=tsArr.reduce((last,d,i)=>d<=365?i:last,0);
-      const c1ts=tsArr.slice(0,c1Cutoff+1);
-      const c1btc=btcArr.slice(0,c1Cutoff+1);
-      const c1port=portArr.slice(0,c1Cutoff+1);
+      // Show full timeline (entry through ATH ~2029)
+      const c1ts=tsArr;
+      const c1btc=btcArr;
+      const c1port=portArr;
 
       const yRMin=liqPx>500?Math.floor(liqPx*0.90/5000)*5000:'auto';
 
@@ -2684,7 +2683,7 @@ function updateMilli(){try{
           }
         },
         grid:{left:72,right:80,top:28,bottom:50,containLabel:false},
-        xAxis:{type:'value',min:0,max:365,
+        xAxis:{type:'value',min:0,max:totalDays,
           axisLabel:{color:'#8b949e',fontSize:9,fontFamily:'JetBrains Mono,monospace',formatter:fmtDay},
           axisPointer:{label:{formatter:p=>fmtDay(p.value),fontFamily:'JetBrains Mono,monospace',fontSize:9,backgroundColor:'#1c2128',borderColor:'#30363d',borderWidth:1}},
           splitLine:{lineStyle:{color:'rgba(33,38,45,0.5)'}},axisTick:{show:false},axisLine:{lineStyle:{color:'#21262d'}}},
@@ -2696,7 +2695,7 @@ function updateMilli(){try{
           {type:'value',name:'BTC Price',nameTextStyle:{color:'#6b7280',fontSize:9,fontFamily:'monospace'},
            axisLabel:{color:'#6b7280',fontSize:9,fontFamily:'monospace',formatter:v=>'$'+Math.round(v/1000)+'K'},
            axisPointer:{label:{formatter:p=>'$'+Math.round(p.value/1000)+'K',fontFamily:'monospace',fontSize:9,backgroundColor:'#1c2128',borderColor:'#30363d',borderWidth:1}},
-           position:'right',splitLine:{show:false},axisTick:{show:false},axisLine:{show:false},min:yRMin}
+           position:'right',splitLine:{show:false},axisTick:{show:false},axisLine:{show:false}}
         ],
         visualMap:{show:false,type:'piecewise',seriesIndex:0,dimension:1,
           pieces:[{lte:capital*0.6,color:'#f85149'},{gt:capital*0.6,lte:capital,color:'#e3b341'},{gt:capital,lte:capital*4,color:'#58a6ff'},{gt:capital*4,color:'#3fb950'}]},
