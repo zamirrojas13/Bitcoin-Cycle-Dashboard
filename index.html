@@ -2734,6 +2734,8 @@ function updateMilli(){try{
         <span class="mpl-item"><span class="mpl-dot" style="background:#58a6ff"></span>Recovery / bull run</span>
         <span class="mpl-item"><span class="mpl-dot" style="background:rgba(248,81,73,0.65)"></span>LIQ price</span>
         <span class="mpl-item"><span class="mpl-dot" style="background:rgba(88,166,255,0.7)"></span>Tier entries</span>`;
+      // Force resize — ECharts negative x-axis min requires a re-render after init
+      setTimeout(()=>{ if(el1)echarts.getInstanceByDom(el1)?.resize(); if(el2)echarts.getInstanceByDom(el2)?.resize(); },80);
     }
 
     // ── CHART 2: ECharts — Profit Projection (Full Horizon) ──────────
