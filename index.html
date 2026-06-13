@@ -2285,8 +2285,8 @@ function updateMilli(){try{
   heroNumEl.classList.remove('flash');void heroNumEl.offsetWidth;heroNumEl.classList.add('flash');
   setTimeout(()=>heroNumEl.classList.remove('flash'),700);
   const profitSign = tradingProfit>=0?'+':'-';
-  heroRoiEl.textContent = profitSign+roiTotal.toFixed(1)+'× total · $'+Math.round(Math.abs(tradingProfit)).toLocaleString()+' profit';
-  heroRoiEl.style.color = tradingProfit>0?'#3fb950':'#8b949e';
+  heroRoiEl.textContent = allTiersSkipped?'No tiers active — lower the bottom price':profitSign+roiTotal.toFixed(1)+'× total · $'+Math.round(Math.abs(tradingProfit)).toLocaleString()+' profit';
+  heroRoiEl.style.color = allTiersSkipped?'#8b949e':tradingProfit>0?'#3fb950':'#8b949e';
   document.getElementById('milliHeroSub').textContent = totalBTC.toFixed(2)+' BTC exposure · '+totalContracts+' BIT contracts'+(reserve>0?' · $'+Math.round(reserve).toLocaleString()+' reserve':'');
 
   // Account-level liquidation analysis box
@@ -2346,14 +2346,15 @@ function updateMilli(){try{
     });
     const scPort=capital+scPnL;
     const scROI=capital>0?scPnL/capital:0;
-    const profColor=scPnL>=0?'g':'r';
+    const noTiers=sfSum===0||scPnL===0;
+    const profColor=scPnL>0?'g':scPnL<0?'r':'';
     scHTML+=`<tr class="${s.cls}">
       <td class="sc-name">${s.name}</td>
       <td class="sc-num">$${s.bot.toLocaleString()}</td>
       <td class="sc-num">$${s.tgt.toLocaleString()}</td>
       <td class="sc-num b">$${Math.round(scPort).toLocaleString()}</td>
-      <td class="sc-num ${profColor}">+$${Math.round(scPnL).toLocaleString()}</td>
-      <td class="sc-num ${profColor}">${scROI.toFixed(1)}&times;</td>
+      <td class="sc-num ${profColor}">${noTiers?'—':'+'+'$'+Math.round(scPnL).toLocaleString()}</td>
+      <td class="sc-num ${profColor}">${noTiers?'—':scROI.toFixed(1)+'&times;'}</td>
     </tr>`;
   });
   document.getElementById('milliScRows').innerHTML=scHTML;
