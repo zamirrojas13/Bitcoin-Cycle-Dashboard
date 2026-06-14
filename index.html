@@ -2631,7 +2631,9 @@ function updateMilli(){try{
       const day0Idx = Math.max(0, c1ts.findIndex(d=>d>=0));
       const btcBase = c1btc[day0Idx] || c1btc[0];
       const portPctArr = c1ts.map((_,i)=>+((c1PortClipped[i]-capital)/capital*100).toFixed(1));
-      const btcPctArr  = c1ts.map((_,i)=>+((c1btc[i]-btcBase)/btcBase*100).toFixed(1));
+      // BTC % only starts from today (day 0) — historical portion stays at 0% so both lines
+      // begin flat at "0% gain" until the plan kicks off, making the comparison fair.
+      const btcPctArr  = c1ts.map((_,i)=>c1ts[i]>=0?+((c1btc[i]-btcBase)/btcBase*100).toFixed(1):0);
       const pctML=[
         {yAxis:0,lineStyle:{color:'rgba(139,148,158,0.22)',type:'dashed',width:1},
          label:{show:true,formatter:'Break-even (0%)',color:'rgba(139,148,158,0.5)',position:'insideStartTop',fontSize:9,fontFamily:'monospace',distance:4}},
