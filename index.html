@@ -1246,6 +1246,19 @@ function switchTab(tabId) {
       const ac=Chart.getChart('analogCanvas'); if(ac) ac.resize();
     }, 50);
   }
+  if (tabId === 'milli') {
+    // ECharts inits while tab is hidden (width=0) — resize after container is visible
+    setTimeout(() => {
+      const el1=document.getElementById('milliGrowthCanvas');
+      if(el1 && typeof echarts!=='undefined'){
+        const c=echarts.getInstanceByDom(el1);
+        if(c) c.resize();
+        // If canvas is still blank after resize (zero-width init), do a full re-render
+        const w=el1.getBoundingClientRect().width;
+        if(!c || w<100) updateMilli();
+      }
+    }, 80);
+  }
 }
 
 
