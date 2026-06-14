@@ -2603,9 +2603,7 @@ function updateMilli(){try{
       const c1LogMin=Math.max(capital*0.3,1);
       const c1PortClipped=c1port.map(v=>Math.max(c1LogMin,v));
 
-      const c1ML=[
-        {yAxis:capital,lineStyle:{color:'rgba(139,148,158,0.22)',type:'dashed',width:1},
-         label:{show:true,formatter:'Capital $'+Math.round(capital/1000)+'K',color:'rgba(139,148,158,0.5)',position:'insideStartTop',fontSize:9,fontFamily:'monospace',distance:4}},
+      const xAxisML=[
         {xAxis:0,lineStyle:{color:'rgba(139,148,158,0.35)',type:'dashed',width:1.5},
          label:{show:true,formatter:'NOW',color:'rgba(139,148,158,0.6)',position:'insideStartTop',fontWeight:'bold',fontSize:9,fontFamily:'monospace',distance:4}},
         {xAxis:botDay,lineStyle:{color:'rgba(248,81,73,0.5)',type:'dashed',width:1.5},
@@ -2616,6 +2614,11 @@ function updateMilli(){try{
           label:{show:true,formatter:'T'+t.n,color:'rgba(88,166,255,0.85)',position:'insideStartTop',fontWeight:'bold',fontSize:9,fontFamily:'monospace',distance:i%2===0?4:18}
         }))
       ];
+      const c1ML=[
+        {yAxis:capital,lineStyle:{color:'rgba(139,148,158,0.22)',type:'dashed',width:1},
+         label:{show:true,formatter:'Capital $'+Math.round(capital/1000)+'K',color:'rgba(139,148,158,0.5)',position:'insideStartTop',fontSize:9,fontFamily:'monospace',distance:4}},
+        ...xAxisML
+      ];
 
       const btcML=liqPx>500?[{
         yAxis:liqPx,
@@ -2623,71 +2626,127 @@ function updateMilli(){try{
         label:{show:true,formatter:'☠ LIQ  $'+Math.round(liqPx/1000)+'K',color:'#f85149',position:'insideEndBottom',fontSize:10,fontFamily:'JetBrains Mono,monospace',fontWeight:'bold',backgroundColor:'rgba(248,81,73,0.18)',borderColor:'rgba(248,81,73,0.5)',borderWidth:1,borderRadius:3,padding:[3,8]}
       }]:[];
 
-      c1.setOption({
+      // ── % Gain mode data ─────────────────────────────────────────────
+      const c1mode = window._milliC1Mode || 'dollar';
+      const day0Idx = Math.max(0, c1ts.findIndex(d=>d>=0));
+      const btcBase = c1btc[day0Idx] || c1btc[0];
+      const portPctArr = c1ts.map((_,i)=>+((c1PortClipped[i]-capital)/capital*100).toFixed(1));
+      const btcPctArr  = c1ts.map((_,i)=>+((c1btc[i]-btcBase)/btcBase*100).toFixed(1));
+      const pctML=[
+        {yAxis:0,lineStyle:{color:'rgba(139,148,158,0.22)',type:'dashed',width:1},
+         label:{show:true,formatter:'Break-even (0%)',color:'rgba(139,148,158,0.5)',position:'insideStartTop',fontSize:9,fontFamily:'monospace',distance:4}},
+        ...xAxisML
+      ];
+
+      const sharedOpts={
         backgroundColor:'transparent',
         animation:true,animationDuration:700,animationEasing:'cubicOut',
-        tooltip:{
-          trigger:'axis',
-          axisPointer:{type:'cross',crossStyle:{color:'rgba(48,54,61,0.8)'},lineStyle:{color:'rgba(48,54,61,0.5)'}},
-          backgroundColor:'#0d1117',borderColor:'#30363d',borderWidth:1,padding:12,
-          formatter:function(params){
-            const dayVal=params[0].axisValue;
-            const ms2=nowMs+dayVal*86400000;
-            const d=new Date(ms2);
-            const phase=ms2<botMs?'📉 Drawdown':ms2<h5Ms?'🔄 Recovery':'🚀 Bull Run';
-            let h='<div style="font-family:JetBrains Mono,monospace;font-size:11px;min-width:215px">';
-            h+='<div style="color:#e6edf3;font-weight:700;margin-bottom:5px">'+MOS[d.getUTCMonth()]+' '+d.getUTCFullYear()+'  ·  '+phase+'</div>';
-            h+='<div style="border-top:1px solid #30363d;margin:4px 0 5px"></div>';
-            const pItem=params.find(p=>p.seriesName==='Portfolio');
-            const bItem=params.find(p=>p.seriesName==='BTC Price');
-            if(pItem&&pItem.value){
-              const v=pItem.value[1],pnl=Math.round(v-capital),pct=capital>0?((v-capital)/capital*100).toFixed(1):0;
-              h+='<div>Portfolio: <b style="color:#58a6ff">$'+Math.round(v).toLocaleString()+'</b></div>';
-              h+='<div style="color:'+(v>=capital?'#3fb950':'#f85149')+'">P&L: '+(pnl>=0?'+':'')+Math.abs(pnl).toLocaleString()+' ('+(+pct>=0?'+':'')+pct+'%)</div>';
-            }
-            if(bItem&&bItem.value) h+='<div style="color:#8b949e;margin-top:3px">BTC: $'+Math.round(bItem.value[1]).toLocaleString()+'</div>';
-            const di=Math.min(N,Math.max(0,Math.round(dayVal*N/totalDays)));
-            const P=btcArr[di]||btcArr[0],rm=runMinArr[di]||P;
-            const active=TIERS.filter(t=>t.contracts>0&&rm<=t.price);
-            if(active.length){
-              h+='<div style="border-top:1px solid #30363d;margin:5px 0 4px"></div>';
-              let totC=0,wE=0,tPnL=0;
-              active.forEach(t=>{totC+=t.contracts;wE+=t.contracts*t.price;tPnL+=t.contracts*0.01*(P-t.price);});
-              const avgE=Math.round(wE/totC),tBTC=+(totC*0.01).toFixed(2);
-              h+='<div style="color:#c9d1d9">📊 '+tBTC+' BTC · avg $'+(avgE/1000).toFixed(1)+'K · '+totC+' contracts</div>';
-              h+='<div style="color:'+(tPnL>=0?'#3fb950':'#f85149')+'">'+(tPnL>=0?'+':'')+Math.round(tPnL).toLocaleString()+' unrealized</div>';
-              if(liqPx>500){const dist=Math.round(P-liqPx);h+='<div style="color:'+(dist>=0?'#3fb950':'#f85149')+'">'+(dist>=0?'✅':'☠')+' $'+Math.abs(dist).toLocaleString()+' '+(dist>=0?'above':'below')+' liq ($'+Math.round(liqPx/1000)+'K)</div>';}
-            }
-            return h+'</div>';
-          }
-        },
-        grid:{left:72,right:80,top:28,bottom:50,containLabel:false},
         xAxis:{type:'value',min:-histDays,max:totalDays,
           axisLabel:{color:'#8b949e',fontSize:9,fontFamily:'JetBrains Mono,monospace',formatter:fmtDay},
           axisPointer:{label:{formatter:p=>fmtDay(p.value),fontFamily:'JetBrains Mono,monospace',fontSize:9,backgroundColor:'#1c2128',borderColor:'#30363d',borderWidth:1}},
-          splitLine:{lineStyle:{color:'rgba(33,38,45,0.5)'}},axisTick:{show:false},axisLine:{lineStyle:{color:'#21262d'}}},
-        yAxis:[
-          {type:'log',logBase:10,min:c1LogMin,name:'Portfolio ($)',nameTextStyle:{color:'#8b949e',fontSize:9,fontFamily:'monospace'},
-           axisLabel:{color:'#8b949e',fontSize:9,fontFamily:'monospace',showMaxLabel:false,formatter:v=>v>=1e6?'$'+(v/1e6).toFixed(1)+'M':v>=1000?'$'+Math.round(v/1000)+'K':'$'+Math.round(v)},
-           axisPointer:{label:{formatter:p=>p.value>=1e6?'$'+(p.value/1e6).toFixed(1)+'M':p.value>=1000?'$'+Math.round(p.value/1000)+'K':'$'+Math.round(p.value),fontFamily:'monospace',fontSize:9,backgroundColor:'#1c2128',borderColor:'#30363d',borderWidth:1}},
-           splitLine:{lineStyle:{color:'rgba(33,38,45,0.5)'}},axisTick:{show:false},axisLine:{show:false}},
-          {type:'value',name:'BTC Price',nameTextStyle:{color:'#6b7280',fontSize:9,fontFamily:'monospace'},
-           axisLabel:{color:'#6b7280',fontSize:9,fontFamily:'monospace',formatter:v=>'$'+Math.round(v/1000)+'K'},
-           axisPointer:{label:{formatter:p=>'$'+Math.round(p.value/1000)+'K',fontFamily:'monospace',fontSize:9,backgroundColor:'#1c2128',borderColor:'#30363d',borderWidth:1}},
-           position:'right',splitLine:{show:false},axisTick:{show:false},axisLine:{show:false}}
-        ],
-        visualMap:{show:false,type:'piecewise',seriesIndex:0,dimension:1,
-          pieces:[{lte:capital*0.6,color:'#f85149'},{gt:capital*0.6,lte:capital,color:'#e3b341'},{gt:capital,lte:capital*4,color:'#58a6ff'},{gt:capital*4,color:'#3fb950'}]},
-        series:[
-          {name:'Portfolio',type:'line',yAxisIndex:0,data:c1PortClipped.map((y,i)=>[c1ts[i],y]),
-           smooth:0.3,symbol:'none',lineStyle:{width:2.5},
-           areaStyle:{color:{type:'linear',x:0,y:0,x2:0,y2:1,colorStops:[{offset:0,color:'rgba(88,166,255,0.09)'},{offset:1,color:'rgba(88,166,255,0)'}]}},
-           markLine:{silent:true,symbol:'none',lineStyle:{type:'dashed',width:1},label:{show:false},data:c1ML}},
-          {name:'BTC Price',type:'line',yAxisIndex:1,data:c1btc.map((y,i)=>[c1ts[i],y]),
-           smooth:0.3,symbol:'none',lineStyle:{color:'rgba(255,255,255,0.13)',width:1.5},
-           markLine:btcML.length?{silent:true,symbol:'none',data:btcML}:undefined}
-        ]
-      });
+          splitLine:{lineStyle:{color:'rgba(33,38,45,0.5)'}},axisTick:{show:false},axisLine:{lineStyle:{color:'#21262d'}}}
+      };
+
+      if(c1mode==='pct'){
+        c1.setOption({...sharedOpts,
+          tooltip:{trigger:'axis',
+            axisPointer:{type:'cross',crossStyle:{color:'rgba(48,54,61,0.8)'},lineStyle:{color:'rgba(48,54,61,0.5)'}},
+            backgroundColor:'#0d1117',borderColor:'#30363d',borderWidth:1,padding:12,
+            formatter:function(params){
+              const dayVal=params[0].axisValue;
+              const ms2=nowMs+dayVal*86400000;
+              const d=new Date(ms2);
+              const phase=ms2<botMs?'📉 Drawdown':ms2<h5Ms?'🔄 Recovery':'🚀 Bull Run';
+              let h='<div style="font-family:JetBrains Mono,monospace;font-size:11px;min-width:215px">';
+              h+='<div style="color:#e6edf3;font-weight:700;margin-bottom:5px">'+MOS[d.getUTCMonth()]+' '+d.getUTCFullYear()+'  ·  '+phase+'</div>';
+              h+='<div style="border-top:1px solid #30363d;margin:4px 0 5px"></div>';
+              const pItem=params.find(p=>p.seriesName==='Portfolio');
+              const bItem=params.find(p=>p.seriesName==='BTC Price');
+              if(pItem&&pItem.value!=null){
+                const pct=pItem.value[1];
+                h+='<div>Portfolio: <b style="color:#58a6ff">'+(pct>=0?'+':'')+pct+'%</b>  <span style="color:#8b949e">($'+Math.round(capital*(1+pct/100)).toLocaleString()+')</span></div>';
+              }
+              if(bItem&&bItem.value!=null){
+                const pct=bItem.value[1];
+                h+='<div style="color:#8b949e;margin-top:3px">BTC: '+(pct>=0?'+':'')+pct+'%  <span>($'+Math.round(btcBase*(1+pct/100)).toLocaleString()+')</span></div>';
+              }
+              return h+'</div>';
+            }},
+          grid:{left:60,right:20,top:28,bottom:50,containLabel:false},
+          yAxis:[{type:'value',name:'% Gain vs Today',nameTextStyle:{color:'#8b949e',fontSize:9,fontFamily:'monospace'},
+            axisLabel:{color:'#8b949e',fontSize:9,fontFamily:'monospace',formatter:v=>(v>=0?'+':'')+v+'%'},
+            axisPointer:{label:{formatter:p=>(p.value>=0?'+':'')+p.value.toFixed(1)+'%',fontFamily:'monospace',fontSize:9,backgroundColor:'#1c2128',borderColor:'#30363d',borderWidth:1}},
+            splitLine:{lineStyle:{color:'rgba(33,38,45,0.5)'}},axisTick:{show:false},axisLine:{show:false}}],
+          visualMap:{show:false,type:'piecewise',seriesIndex:0,dimension:1,
+            pieces:[{lte:-30,color:'#f85149'},{gt:-30,lte:0,color:'#e3b341'},{gt:0,lte:300,color:'#58a6ff'},{gt:300,color:'#3fb950'}]},
+          series:[
+            {name:'Portfolio',type:'line',yAxisIndex:0,data:portPctArr.map((y,i)=>[c1ts[i],y]),
+             smooth:0.3,symbol:'none',lineStyle:{width:2.5},
+             areaStyle:{color:{type:'linear',x:0,y:0,x2:0,y2:1,colorStops:[{offset:0,color:'rgba(88,166,255,0.09)'},{offset:1,color:'rgba(88,166,255,0)'}]}},
+             markLine:{silent:true,symbol:'none',lineStyle:{type:'dashed',width:1},label:{show:false},data:pctML}},
+            {name:'BTC Price',type:'line',yAxisIndex:0,data:btcPctArr.map((y,i)=>[c1ts[i],y]),
+             smooth:0.3,symbol:'none',lineStyle:{color:'rgba(255,255,255,0.22)',width:1.5}}
+          ]
+        },{notMerge:true});
+      } else {
+        c1.setOption({...sharedOpts,
+          tooltip:{trigger:'axis',
+            axisPointer:{type:'cross',crossStyle:{color:'rgba(48,54,61,0.8)'},lineStyle:{color:'rgba(48,54,61,0.5)'}},
+            backgroundColor:'#0d1117',borderColor:'#30363d',borderWidth:1,padding:12,
+            formatter:function(params){
+              const dayVal=params[0].axisValue;
+              const ms2=nowMs+dayVal*86400000;
+              const d=new Date(ms2);
+              const phase=ms2<botMs?'📉 Drawdown':ms2<h5Ms?'🔄 Recovery':'🚀 Bull Run';
+              let h='<div style="font-family:JetBrains Mono,monospace;font-size:11px;min-width:215px">';
+              h+='<div style="color:#e6edf3;font-weight:700;margin-bottom:5px">'+MOS[d.getUTCMonth()]+' '+d.getUTCFullYear()+'  ·  '+phase+'</div>';
+              h+='<div style="border-top:1px solid #30363d;margin:4px 0 5px"></div>';
+              const pItem=params.find(p=>p.seriesName==='Portfolio');
+              const bItem=params.find(p=>p.seriesName==='BTC Price');
+              if(pItem&&pItem.value){
+                const v=pItem.value[1],pnl=Math.round(v-capital),pct=capital>0?((v-capital)/capital*100).toFixed(1):0;
+                h+='<div>Portfolio: <b style="color:#58a6ff">$'+Math.round(v).toLocaleString()+'</b></div>';
+                h+='<div style="color:'+(v>=capital?'#3fb950':'#f85149')+'">P&L: '+(pnl>=0?'+':'')+Math.abs(pnl).toLocaleString()+' ('+(+pct>=0?'+':'')+pct+'%)</div>';
+              }
+              if(bItem&&bItem.value) h+='<div style="color:#8b949e;margin-top:3px">BTC: $'+Math.round(bItem.value[1]).toLocaleString()+'</div>';
+              const di=Math.min(N,Math.max(0,Math.round(dayVal*N/totalDays)));
+              const P=btcArr[di]||btcArr[0],rm=runMinArr[di]||P;
+              const active=TIERS.filter(t=>t.contracts>0&&rm<=t.price);
+              if(active.length){
+                h+='<div style="border-top:1px solid #30363d;margin:5px 0 4px"></div>';
+                let totC=0,wE=0,tPnL=0;
+                active.forEach(t=>{totC+=t.contracts;wE+=t.contracts*t.price;tPnL+=t.contracts*0.01*(P-t.price);});
+                const avgE=Math.round(wE/totC),tBTC=+(totC*0.01).toFixed(2);
+                h+='<div style="color:#c9d1d9">📊 '+tBTC+' BTC · avg $'+(avgE/1000).toFixed(1)+'K · '+totC+' contracts</div>';
+                h+='<div style="color:'+(tPnL>=0?'#3fb950':'#f85149')+'">'+(tPnL>=0?'+':'')+Math.round(tPnL).toLocaleString()+' unrealized</div>';
+                if(liqPx>500){const dist=Math.round(P-liqPx);h+='<div style="color:'+(dist>=0?'#3fb950':'#f85149')+'">'+(dist>=0?'✅':'☠')+' $'+Math.abs(dist).toLocaleString()+' '+(dist>=0?'above':'below')+' liq ($'+Math.round(liqPx/1000)+'K)</div>';}
+              }
+              return h+'</div>';
+            }},
+          grid:{left:72,right:80,top:28,bottom:50,containLabel:false},
+          yAxis:[
+            {type:'log',logBase:10,min:c1LogMin,name:'Portfolio ($)',nameTextStyle:{color:'#8b949e',fontSize:9,fontFamily:'monospace'},
+             axisLabel:{color:'#8b949e',fontSize:9,fontFamily:'monospace',showMaxLabel:false,formatter:v=>v>=1e6?'$'+(v/1e6).toFixed(1)+'M':v>=1000?'$'+Math.round(v/1000)+'K':'$'+Math.round(v)},
+             axisPointer:{label:{formatter:p=>p.value>=1e6?'$'+(p.value/1e6).toFixed(1)+'M':p.value>=1000?'$'+Math.round(p.value/1000)+'K':'$'+Math.round(p.value),fontFamily:'monospace',fontSize:9,backgroundColor:'#1c2128',borderColor:'#30363d',borderWidth:1}},
+             splitLine:{lineStyle:{color:'rgba(33,38,45,0.5)'}},axisTick:{show:false},axisLine:{show:false}},
+            {type:'value',name:'BTC Price',nameTextStyle:{color:'#6b7280',fontSize:9,fontFamily:'monospace'},
+             axisLabel:{color:'#6b7280',fontSize:9,fontFamily:'monospace',formatter:v=>'$'+Math.round(v/1000)+'K'},
+             axisPointer:{label:{formatter:p=>'$'+Math.round(p.value/1000)+'K',fontFamily:'monospace',fontSize:9,backgroundColor:'#1c2128',borderColor:'#30363d',borderWidth:1}},
+             position:'right',splitLine:{show:false},axisTick:{show:false},axisLine:{show:false}}
+          ],
+          visualMap:{show:false,type:'piecewise',seriesIndex:0,dimension:1,
+            pieces:[{lte:capital*0.6,color:'#f85149'},{gt:capital*0.6,lte:capital,color:'#e3b341'},{gt:capital,lte:capital*4,color:'#58a6ff'},{gt:capital*4,color:'#3fb950'}]},
+          series:[
+            {name:'Portfolio',type:'line',yAxisIndex:0,data:c1PortClipped.map((y,i)=>[c1ts[i],y]),
+             smooth:0.3,symbol:'none',lineStyle:{width:2.5},
+             areaStyle:{color:{type:'linear',x:0,y:0,x2:0,y2:1,colorStops:[{offset:0,color:'rgba(88,166,255,0.09)'},{offset:1,color:'rgba(88,166,255,0)'}]}},
+             markLine:{silent:true,symbol:'none',lineStyle:{type:'dashed',width:1},label:{show:false},data:c1ML}},
+            {name:'BTC Price',type:'line',yAxisIndex:1,data:c1btc.map((y,i)=>[c1ts[i],y]),
+             smooth:0.3,symbol:'none',lineStyle:{color:'rgba(255,255,255,0.13)',width:1.5},
+             markLine:btcML.length?{silent:true,symbol:'none',data:btcML}:undefined}
+          ]
+        },{notMerge:true});
+      }
       if(_milliResizeC1){window.removeEventListener('resize',_milliResizeC1);}
       _milliResizeC1=()=>c1&&!c1.isDisposed()&&c1.resize();
       window.addEventListener('resize',_milliResizeC1);
@@ -2698,7 +2757,8 @@ function updateMilli(){try{
         <span class="mpl-item"><span class="mpl-dot" style="background:#e3b341"></span>Underwater</span>
         <span class="mpl-item"><span class="mpl-dot" style="background:#58a6ff"></span>Recovery / bull run</span>
         <span class="mpl-item"><span class="mpl-dot" style="background:rgba(248,81,73,0.65)"></span>LIQ price</span>
-        <span class="mpl-item"><span class="mpl-dot" style="background:rgba(88,166,255,0.7)"></span>Tier entries</span>`;
+        <span class="mpl-item"><span class="mpl-dot" style="background:rgba(88,166,255,0.7)"></span>Tier entries</span>
+        <button onclick="window.milliToggleC1Mode()" style="margin-left:auto;background:${c1mode==='pct'?'rgba(88,166,255,0.18)':'rgba(33,38,45,0.8)'};border:1px solid ${c1mode==='pct'?'#58a6ff':'#30363d'};border-radius:5px;color:${c1mode==='pct'?'#58a6ff':'#8b949e'};font-size:10px;font-family:'JetBrains Mono',monospace;padding:3px 10px;cursor:pointer;">% Gain</button>`;
       // Force resize — ECharts negative x-axis min requires a re-render after init
       setTimeout(()=>{ if(el1)echarts.getInstanceByDom(el1)?.resize(); },80);
     }
@@ -2720,6 +2780,11 @@ window.milliSetCustomPrice = function(n,val){
 window.milliSetCustomContracts = function(n,val){
   const v=parseInt(val);
   if(!isNaN(v)&&v>=0) window.milliCustomContracts[n]=v; else delete window.milliCustomContracts[n];
+  updateMilli();
+};
+window._milliC1Mode = window._milliC1Mode || 'dollar';
+window.milliToggleC1Mode = function(){
+  window._milliC1Mode = window._milliC1Mode === 'pct' ? 'dollar' : 'pct';
   updateMilli();
 };
 window.milliResetCustom = function(){
