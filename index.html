@@ -2138,7 +2138,7 @@ function updateMilli(){try{
         <span style="font-size:22px;color:#e6edf3;font-weight:700;">$</span>
         <input type="number" class="mtc-price-input" value="${tPrice}"
           style="font-size:22px;font-weight:700;color:#e6edf3;background:transparent;border:none;border-bottom:1px solid ${isCustomP?'#58a6ff':'rgba(139,148,158,0.2)'};width:110px;outline:none;padding:2px 0;"
-          oninput="window.milliSetCustomPrice(${t.n},this.value)"
+          onchange="window.milliSetCustomPrice(${t.n},this.value)"
           title="Override entry price for Tier ${t.n}">
         ${isCustomP?'<span style="font-size:10px;color:#58a6ff;cursor:pointer;" onclick="delete window.milliCustomPrices['+t.n+'];updateMilli()">✕ reset</span>':''}
       </div>
@@ -2148,7 +2148,7 @@ function updateMilli(){try{
         <div class="mtc-row"><span class="mtc-rk">BIT contracts</span><span class="mtc-rv" style="display:flex;align-items:center;gap:6px;">
           <input type="number" min="0" step="1" value="${contracts}"
             style="width:60px;background:transparent;border:none;border-bottom:1px solid ${isCustomC?'#58a6ff':'rgba(139,148,158,0.2)'};color:${isCustomC?'#58a6ff':'#e6edf3'};font-size:13px;font-weight:600;outline:none;text-align:right;padding:0 2px;"
-            oninput="window.milliSetCustomContracts(${t.n},this.value)"
+            onchange="window.milliSetCustomContracts(${t.n},this.value)"
             title="Override contracts for Tier ${t.n}">
           ${isCustomC?'<span style="font-size:10px;color:#58a6ff;cursor:pointer;" onclick="delete window.milliCustomContracts['+t.n+'];updateMilli()">✕</span>':'<span style="font-size:10px;color:#6b7280;">auto</span>'}
         </span></div>
