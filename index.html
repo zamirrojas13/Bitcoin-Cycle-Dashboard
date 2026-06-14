@@ -2037,6 +2037,8 @@ function setMilliTiers(n,btn){
 }
 
 function updateMilli(){try{
+  // Auto-save settings to localStorage on every update
+  try{const s={capital:document.getElementById('milliCapital').value,bottom:document.getElementById('milliBottom').value,top:document.getElementById('milliTop').value,reserve:document.getElementById('milliReserve').value,lev:document.getElementById('milliLev').value,tiers:document.getElementById('milliTiers').value};localStorage.setItem('milliSettings',JSON.stringify(s));}catch(e){}
   const capital    = parseFloat(document.getElementById('milliCapital').value)||10000;
   const reserve    = Math.max(0,parseFloat(document.getElementById('milliReserve')?.value)||0);
   // Reserve is ADDITIONAL cash buffer on top of capital — capital is always fully deployed
@@ -2794,6 +2796,29 @@ window.milliResetCustom = function(){
   window.milliCustomContracts={};
   updateMilli();
 };
+
+// ── Restore saved settings from localStorage ────────────────────────
+(function(){
+  try{
+    const s=JSON.parse(localStorage.getItem('milliSettings')||'{}');
+    if(s.capital) document.getElementById('milliCapital').value=s.capital;
+    if(s.bottom)  document.getElementById('milliBottom').value=s.bottom;
+    if(s.top)     document.getElementById('milliTop').value=s.top;
+    if(s.reserve) document.getElementById('milliReserve').value=s.reserve;
+    if(s.lev){
+      document.getElementById('milliLev').value=s.lev;
+      document.querySelectorAll('.lev-btn').forEach(b=>{
+        b.classList.toggle('lev-active',b.textContent.trim()===s.lev+'×');
+      });
+    }
+    if(s.tiers){
+      document.getElementById('milliTiers').value=s.tiers;
+      document.querySelectorAll('.tiers-btn').forEach(b=>{
+        b.classList.toggle('lev-active',b.textContent.trim()===s.tiers);
+      });
+    }
+  }catch(e){}
+})();
 updateMilli();
 
 // ── EXIT PLANNER ────────────────────────────────────────────────────
