@@ -2051,7 +2051,7 @@ function setMilliTiers(n,btn){
 
 function updateMilli(){try{
   // Auto-save settings to localStorage on every update
-  try{const s={capital:document.getElementById('milliCapital').value,bottom:document.getElementById('milliBottom').value,top:document.getElementById('milliTop').value,reserve:document.getElementById('milliReserve').value,lev:document.getElementById('milliLev').value,tiers:document.getElementById('milliTiers').value};localStorage.setItem('milliSettings',JSON.stringify(s));}catch(e){}
+  try{const s={capital:document.getElementById('milliCapital').value,bottom:document.getElementById('milliBottom').value,top:document.getElementById('milliTop').value,reserve:document.getElementById('milliReserve').value,lev:document.getElementById('milliLev').value,tiers:document.getElementById('milliTiers').value,startDate:document.getElementById('milliStartDate')?.value||'',tierMonths:JSON.stringify(window.milliTierMonths||{})};localStorage.setItem('milliSettings',JSON.stringify(s));}catch(e){}
   const capital    = parseFloat(document.getElementById('milliCapital').value)||10000;
   const reserve    = Math.max(0,parseFloat(document.getElementById('milliReserve')?.value)||0);
   // Reserve is ADDITIONAL cash buffer on top of capital — capital is always fully deployed
@@ -2060,6 +2060,24 @@ function updateMilli(){try{
   const top        = parseFloat(document.getElementById('milliTop').value)||280000;
   const lev        = Math.max(1,parseFloat(document.getElementById('milliLev').value)||10);
   const price      = typeof livePrice!=='undefined'?livePrice:61770;
+  // Plan start date — drives chart reference point and tier status badges
+  const realNowMs   = Date.now();
+  const _sdVal      = document.getElementById('milliStartDate')?.value;
+  const planStartMs = _sdVal ? new Date(_sdVal+'-01').getTime() : realNowMs;
+  // BTC price at plan start: live price if today, inline model projection if future
+  const effectivePrice = (()=>{
+    if(planStartMs <= realNowMs+86400000) return price;
+    const bMs=new Date('2026-10-08').getTime(),hMs=new Date('2028-04-18').getTime(),
+          aMs=new Date('2029-08-01').getTime(),eMs=new Date('2030-06-01').getTime();
+    const h5p=Math.round(Math.min(bottom*2.8,126000*1.05)),postAth=Math.round(top*0.68);
+    const ss=x=>3*x*x-2*x*x*x, span=eMs-realNowMs;
+    const t=Math.max(0,Math.min(1,(planStartMs-realNowMs)/span));
+    const tB=(bMs-realNowMs)/span,tH=(hMs-realNowMs)/span,tA=(aMs-realNowMs)/span;
+    if(t<=tB){const f=t/tB;return Math.round(price+(bottom-price)*ss(f));}
+    if(t<=tH){const f=(t-tB)/(tH-tB);return Math.round(bottom*Math.pow(Math.max(h5p/bottom,1.0001),ss(f)));}
+    if(t<=tA){const f=(t-tH)/(tA-tH);return Math.round(h5p*Math.pow(Math.max(top/h5p,1.0001),1-(1-f)*(1-f)));}
+    return Math.round(top+(postAth-top)*ss(Math.min(1,(t-tA)/(1-tA))));
+  })();
 
   const tierCount = Math.max(1,Math.min(4,parseInt(document.getElementById('milliTiers')?.value)||4));
 
@@ -2080,6 +2098,9 @@ function updateMilli(){try{
     return {...t, pct:pctNorm};
   });
 
+  // Apply custom price overrides to TIERS so redistribution uses the correct fire prices
+  TIERS.forEach(t=>{ if(window.milliCustomPrices&&window.milliCustomPrices[t.n]) t.price=window.milliCustomPrices[t.n]; });
+
   // Store original normalized pcts for per-scenario redistribution
   const _origPct = TIERS.map(t=>t.pct);
   // Redistribute pct from tiers that won't fire (price < bottom) to those that will
@@ -2096,6 +2117,25 @@ function updateMilli(){try{
     });
   }
 
+  // Apply user-set % allocations; if tier set changed, clear stale overrides
+  {
+    const _cp = window.milliCustomPcts;
+    if(_cp && Object.keys(_cp).length > 0) {
+      const firingTs = TIERS.filter(t=>t.price>=bottom);
+      const firingNs = firingTs.map(t=>t.n).sort().join(',');
+      const customNs = Object.keys(_cp).map(Number).sort().join(',');
+      if(firingNs === customNs && firingNs !== '') {
+        firingTs.forEach(t => { t.pct = _cp[t.n]; });
+        const sum = firingTs.reduce((s,t)=>s+t.pct,0);
+        if(sum !== 100) firingTs[firingTs.length-1].pct += (100-sum);
+      } else {
+        window.milliCustomPcts = {};
+      }
+    }
+    window._milliCurrentTierPcts = {};
+    TIERS.filter(t=>t.price>=bottom).forEach(t => { window._milliCurrentTierPcts[t.n] = t.pct; });
+  }
+
   let totalMargin=0,totalBTC=0,totalContracts=0,totalPnL=0,weightedEntry=0;
   let tierHTML='';
   const allTiersSkipped=TIERS.every(t=>t.price<bottom);
@@ -2106,19 +2146,17 @@ function updateMilli(){try{
     const alloc      = deployable*t.pct/100;
     const notional   = alloc*lev;
     const autoContracts = Math.max(0,Math.floor(notional/(tPrice*0.01)));
-    const contracts  = (window.milliCustomContracts&&window.milliCustomContracts[t.n]!==undefined)
-                        ? window.milliCustomContracts[t.n] : autoContracts;
+    const contracts  = autoContracts;
     const btcExp     = contracts*0.01;
     const marginReq  = contracts*tPrice*0.01/lev;
     const pnl        = (top-tPrice)*0.01*contracts;
-    const dist       = price-tPrice;
+    const dist       = effectivePrice-tPrice;
     const willFire   = tPrice>=bottom;
-    const status     = !willFire?'skip':(tPrice>=price?'fired':(dist<6000?'close':'waiting'));
+    const status     = !willFire?'skip':(tPrice>=effectivePrice?'fired':(dist<6000?'close':'waiting'));
     // Store for growth chart (zero out skipped tiers so chart and minBuffer ignore them)
     t.contracts = willFire ? contracts : 0; t.entryPrice = tPrice; t.price = tPrice;
-    const statusLbl  = !willFire?'&#8212; SKIPPED':(tPrice>=price?'&#10003; FIRED':(status==='close'?'CLOSE':'WAITING'));
+    const statusLbl  = !willFire?'&#8212; SKIPPED':(tPrice>=effectivePrice?'&#10003; FIRED':(status==='close'?'CLOSE':'WAITING'));
     const isCustomP  = window.milliCustomPrices&&window.milliCustomPrices[t.n];
-    const isCustomC  = window.milliCustomContracts&&window.milliCustomContracts[t.n]!==undefined;
 
     if(willFire){
       totalMargin   += marginReq;
@@ -2130,23 +2168,26 @@ function updateMilli(){try{
 
     if(!willFire){
       tierHTML+=`
-    <div class="milli-tier-card mtc-skip" style="opacity:0.42;">
+    <div class="milli-tier-card mtc-skip" style="opacity:0.55;">
       <div class="mtc-header">
-        <div><div class="mtc-num">Tier ${t.n} &middot; won't fire at $${Math.round(bottom/1000)}K bottom</div><div class="mtc-label">${t.label}</div></div>
+        <div><div class="mtc-num" style="color:#6b7280;">Tier ${t.n} &middot; contingency entry</div><div class="mtc-label" style="color:#484f58;">${t.label}</div></div>
         <div class="mtc-badge mtb-skip">${statusLbl}</div>
       </div>
-      <div style="font-size:22px;font-weight:700;color:#484f58;margin:8px 0 10px;">$${tPrice.toLocaleString()}</div>
-      <div class="mtc-rows">
-        <div class="mtc-row"><span class="mtc-rk">Entry price</span><span class="mtc-rv" style="color:#484f58;">$${tPrice.toLocaleString()}</span></div>
-        <div class="mtc-row"><span class="mtc-rk">BIT contracts</span><span class="mtc-rv" style="color:#484f58;">0 — capital redistributed</span></div>
+      <div class="mtc-price-wrap" style="display:flex;align-items:center;gap:4px;margin:8px 0 4px;">
+        <span style="font-size:22px;color:#484f58;font-weight:700;">$</span>
+        <input type="number" class="mtc-price-input" value="${tPrice}"
+          style="font-size:22px;font-weight:700;color:#6b7280;background:transparent;border:none;border-bottom:1px solid ${isCustomP?'#58a6ff':'rgba(139,148,158,0.15)'};width:110px;outline:none;padding:2px 0;"
+          onchange="window.milliSetCustomPrice(${t.n},this.value)"
+          title="Set entry price — raise above $${Math.round(bottom/1000)}K bottom to activate this tier">
+        ${isCustomP?'<span style="font-size:10px;color:#58a6ff;cursor:pointer;" onclick="delete window.milliCustomPrices['+t.n+'];updateMilli()">✕ reset</span>':''}
       </div>
-      <div class="mtc-note">BTC won't reach $${tPrice.toLocaleString()} at a $${Math.round(bottom).toLocaleString()} cycle bottom. ${allTiersSkipped?'Lower the expected bottom price to activate tiers.':'This tier\'s capital flows to the active tiers above.'}</div>
+      <div class="mtc-note" style="color:#484f58;">Below $${Math.round(bottom/1000)}K bottom — capital flows to active tiers. <span style="color:#6b7280;">Type a price above $${Math.round(bottom/1000)}K to activate.</span></div>
     </div>`;
     } else {
       tierHTML+=`
     <div class="milli-tier-card mtc-${status}">
       <div class="mtc-header">
-        <div><div class="mtc-num">Tier ${t.n} &middot; ${t.pct}% of capital ($${Math.round(capital).toLocaleString()})</div><div class="mtc-label">${t.label}</div></div>
+        <div><div class="mtc-num">Tier ${t.n} &middot; <input type="number" min="1" max="99" value="${t.pct}" style="width:36px;background:transparent;border:none;border-bottom:1px solid rgba(88,166,255,0.5);color:#e6edf3;font-size:inherit;font-weight:700;font-family:inherit;outline:none;text-align:right;padding:0 1px;" onchange="window.milliSetTierPct(${t.n},this.value)">% of capital ($${Math.round(capital).toLocaleString()})</div><div class="mtc-label">${t.label}</div></div>
         <div class="mtc-badge mtb-${status}">${statusLbl}</div>
       </div>
       <div class="mtc-price-wrap" style="display:flex;align-items:center;gap:4px;margin:8px 0 4px;">
@@ -2160,13 +2201,16 @@ function updateMilli(){try{
       <div class="mtc-rows">
         <div class="mtc-row"><span class="mtc-rk">Capital allocated</span><span class="mtc-rv">$${Math.round(alloc).toLocaleString()}</span></div>
         <div class="mtc-row"><span class="mtc-rk">Buying power (${lev}&times;)</span><span class="mtc-rv">$${Math.round(notional).toLocaleString()}</span></div>
-        <div class="mtc-row"><span class="mtc-rk">BIT contracts</span><span class="mtc-rv" style="display:flex;align-items:center;gap:6px;">
-          <input type="number" min="0" step="1" value="${contracts}"
-            style="width:60px;background:transparent;border:none;border-bottom:1px solid ${isCustomC?'#58a6ff':'rgba(139,148,158,0.2)'};color:${isCustomC?'#58a6ff':'#e6edf3'};font-size:13px;font-weight:600;outline:none;text-align:right;padding:0 2px;"
-            onchange="window.milliSetCustomContracts(${t.n},this.value)"
-            title="Override contracts for Tier ${t.n}">
-          ${isCustomC?'<span style="font-size:10px;color:#58a6ff;cursor:pointer;" onclick="delete window.milliCustomContracts['+t.n+'];updateMilli()">✕</span>':'<span style="font-size:10px;color:#6b7280;">auto</span>'}
-        </span></div>
+        <div class="mtc-row"><span class="mtc-rk">BIT contracts</span><span class="mtc-rv">${contracts} <span style="font-size:10px;color:#6b7280;">auto</span></span></div>
+        ${(()=>{
+          const _tm=window.milliTierMonths&&window.milliTierMonths[t.n]||'';
+          const _has=!!_tm;
+          const _MO=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+          const _now=new Date();
+          let _opts='<option value="">auto</option>';
+          for(let _m=0;_m<24;_m++){const _d=new Date(_now.getFullYear(),_now.getMonth()+_m,1);const _v=_d.getFullYear()+'-'+String(_d.getMonth()+1).padStart(2,'0');_opts+=`<option value="${_v}"${_tm===_v?' selected':''}>${_MO[_d.getMonth()]} '${String(_d.getFullYear()).slice(2)}</option>`;}
+          return `<div class="mtc-row"><span class="mtc-rk">Buy month</span><span class="mtc-rv" style="display:flex;align-items:center;gap:4px;"><select onchange="window.milliSetTierMonth(${t.n},this.value)" style="background:#0d1117;border:1px solid ${_has?'#58a6ff':'#30363d'};border-radius:4px;color:${_has?'#58a6ff':'#8b949e'};font-size:11px;outline:none;font-family:inherit;padding:2px 6px;cursor:pointer;">${_opts}</select>${_has?'<span style="font-size:10px;color:#58a6ff;cursor:pointer;" onclick="delete window.milliTierMonths['+t.n+'];updateMilli()">✕</span>':''}</span></div>`;
+        })()}
         <div class="mtc-row"><span class="mtc-rk">BTC exposure</span><span class="mtc-rv">${btcExp.toFixed(2)} BTC</span></div>
         <div class="mtc-row"><span class="mtc-rk">Margin required</span><span class="mtc-rv">~$${Math.round(marginReq).toLocaleString()}</span></div>
         <div class="mtc-row mtc-profit"><span class="mtc-rk">Profit at $${(top/1000).toFixed(0)}K target</span><span class="mtc-rv">+$${Math.round(pnl).toLocaleString()}</span></div>
@@ -2302,14 +2346,14 @@ function updateMilli(){try{
   const liqWR  = acctLiqWRes>0?'$'+Math.round(acctLiqWRes).toLocaleString():'Cannot be liquidated';
   if(totalBTC===0){
     document.getElementById('milliAcctLiq').innerHTML=`
-      <div class="acct-liq-ttl">&#128202; Account-level liquidation — all ${tierCount} ${tierCount===1?'entry':'entries'} open simultaneously</div>
+      <div class="acct-liq-ttl">&#128202; Account-level liquidation — all ${TIERS.filter(t=>t.price>=bottom).length} ${TIERS.filter(t=>t.price>=bottom).length===1?'entry':'entries'} open simultaneously</div>
       <div style="padding:14px 0 4px;text-align:center;color:#6b7280;font-size:12px;">No positions deployed — your $${capital.toLocaleString()} is fully in reserve. Lower the reserve to allocate capital to tiers.</div>`;
     // Don't return — let scenarios/checklist/hero update with $0 values
   } else {
   const liqWRColor = acctLiqWRes<=0?'#3fb950':(acctLiqWRes<acctLiqNoRes*0.9?'#d29922':'#f85149');
   const extraBuf = reserve>0&&acctLiqWRes>0?'$'+Math.round(moveWRes-moveNoRes).toLocaleString()+' extra buffer':reserve>0?'Full protection added':'Set reserve above to see impact';
   document.getElementById('milliAcctLiq').innerHTML=`
-    <div class="acct-liq-ttl">&#128202; Account-level liquidation — all ${tierCount} ${tierCount===1?'entry':'entries'} open simultaneously</div>
+    <div class="acct-liq-ttl">&#128202; Account-level liquidation — all ${TIERS.filter(t=>t.price>=bottom).length} ${TIERS.filter(t=>t.price>=bottom).length===1?'entry':'entries'} open simultaneously</div>
     <div class="acct-liq-grid">
       <div class="alc">
         <div class="alc-lbl">Avg. entry price</div>
@@ -2470,7 +2514,7 @@ function updateMilli(){try{
     if(!canvas) return;
 
     // ── Key dates (from dashboard research: 4-cycle R²=0.954 model) ──
-    const nowMs    = Date.now();
+    const nowMs    = planStartMs; // uses outer-scope planStartMs (user's chosen plan start)
     const botMs    = new Date('2026-10-08').getTime(); // Day 900 post-H4 = peak-prob bottom
     const h5Ms     = new Date('2028-04-18').getTime(); // H5 halving (protocol-derived)
     const athMs    = new Date('2029-08-01').getTime(); // C5 ATH central estimate (range Apr–Oct 2029)
@@ -2485,11 +2529,11 @@ function updateMilli(){try{
     const ss = x=>3*x*x - 2*x*x*x; // smoothstep
 
     function btcAt(ms){
-      const span = endMs-nowMs;
-      const t    = Math.max(0,Math.min(1,(ms-nowMs)/span));
-      const tB   = (botMs-nowMs)/span;
-      const tH   = (h5Ms -nowMs)/span;
-      const tA   = (athMs-nowMs)/span;
+      const span = endMs-realNowMs;   // always anchored to today so model stays accurate
+      const t    = Math.max(0,Math.min(1,(ms-realNowMs)/span));
+      const tB   = (botMs-realNowMs)/span;
+      const tH   = (h5Ms -realNowMs)/span;
+      const tA   = (athMs-realNowMs)/span;
       if(t<=tB){
         // Drawdown: smooth deceleration into bottom
         const f=t/tB; return price+(bottom-price)*ss(f);
@@ -2523,19 +2567,48 @@ function updateMilli(){try{
     // Force the path to touch exactly `bottom` so bottom-priced tiers always activate
     {const mi=btcArr.indexOf(Math.min(...btcArr)); btcArr[mi]=bottom;}
 
-    // ── Portfolio path: tiers enter once when running-min reaches entry ──
+    // ── Pre-compute per-tier entry days (month override or price-based) ──
+    const tierMonthDays={}; // tier n → days-from-nowMs when user wants to buy
+    TIERS.filter(t=>t.contracts>0).forEach(t=>{
+      const mv=window.milliTierMonths&&window.milliTierMonths[t.n];
+      if(mv){ const ms=new Date(mv+'-01').getTime(); tierMonthDays[t.n]=Math.round((ms-nowMs)/86400000); }
+    });
+
+    // ── Portfolio path: tiers enter at user month or when price-trigger hit ──
     const portArr=[];
     const runMinArr=[]; // running-min BTC price up to each index (used by tooltip)
     const entered=new Set();
     let runMin=btcArr[0];
+    let liquidated=false, liquidatedDay=null, liquidatedLiqPx=0;
     for(let i=0;i<=N;i++){
       const P=btcArr[i];
       runMin=Math.min(runMin,P);
       runMinArr.push(runMin);
-      TIERS.forEach((t,idx)=>{ if(!entered.has(idx)&&t.contracts>0&&runMin<=t.price) entered.add(idx); });
-      let v=capital;
-      entered.forEach(idx=>{ const t=TIERS[idx]; v+=t.contracts*0.01*(P-t.price); });
-      portArr.push(Math.max(1,Math.round(v))); // min 1 — prevents log(0) on log-scale axis
+      if(!liquidated){
+        TIERS.forEach((t,idx)=>{
+          if(!entered.has(idx)&&t.contracts>0){
+            if(tierMonthDays[t.n]!==undefined){
+              if(tsArr[i]>=tierMonthDays[t.n]) entered.add(idx); // month-based entry
+            } else {
+              if(runMin<=t.price) entered.add(idx); // price-based entry
+            }
+          }
+        });
+        // Dynamic LIQ based on tiers currently entered
+        if(entered.size>0){
+          let enTN=0,enIM=0,enBTC=0;
+          entered.forEach(idx=>{const t=TIERS[idx];enTN+=t.contracts*t.price*0.01;enIM+=t.contracts*t.price*0.01/lev;enBTC+=t.contracts*0.01;});
+          const dynLiq=enBTC>0?(enTN-0.5*enIM-reserve)/enBTC:0;
+          if(dynLiq>0&&P<=dynLiq){liquidated=true;liquidatedDay=tsArr[i];liquidatedLiqPx=dynLiq;}
+        }
+      }
+      if(liquidated){
+        portArr.push(1); // account blown — flatline at log-safe minimum
+      } else {
+        let v=capital;
+        entered.forEach(idx=>{ const t=TIERS[idx]; v+=t.contracts*0.01*(P-t.price); });
+        portArr.push(Math.max(1,Math.round(v)));
+      }
     }
 
 
@@ -2551,7 +2624,7 @@ function updateMilli(){try{
 
     const MOS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
     const fmtMo=ms=>{ const d=new Date(ms); return MOS[d.getUTCMonth()]+" '"+String(d.getUTCFullYear()).slice(2); };
-    const fmtK =v=>v>=1e6?'$'+(v/1e6).toFixed(2)+'M':'$'+Math.round(v/1000)+'K';
+    const fmtK =v=>v>=1e6?'$'+(v/1e6).toFixed(2)+'M':v>=1000?'$'+Math.round(v/1000)+'K':'$'+Math.round(v);
 
     // Break-even: first time portfolio crosses back above capital
     let breakMs=null;
@@ -2570,11 +2643,15 @@ function updateMilli(){try{
       ? `<div style="grid-column:1/-1;background:rgba(248,81,73,0.12);border:1px solid rgba(248,81,73,0.35);border-radius:6px;padding:8px 12px;color:#f85149;font-size:11px;font-family:JetBrains Mono,monospace;">
           ⚠️ Bottom price ($${Math.round(bottom/1000)}K) is at or above current BTC price ($${Math.round(price/1000)}K) — no tiers will fire. Lower the expected bottom to see projections.
          </div>` : '';
+    const liqWarning = liquidated && liquidatedDay!==null
+      ? `<div style="grid-column:1/-1;background:rgba(248,81,73,0.12);border:1px solid rgba(248,81,73,0.5);border-radius:6px;padding:8px 12px;color:#f85149;font-size:11px;font-family:JetBrains Mono,monospace;">
+          ☠ LIQUIDATED ${fmtMo(nowMs+liquidatedDay*86400000)} — BTC dropped below $${Math.round(liquidatedLiqPx).toLocaleString()} (liq at that point). Reduce leverage, lower tier prices, or add reserve to survive the bottom.
+         </div>` : '';
 
     // ── Stats row ─────────────────────────────────────────────────────
     document.getElementById('milliGcStats').innerHTML=`
-      ${bottomWarning}
-      <div class="mgsr"><div class="mgsr-lbl">Bottom ${fmtMo(botMs)}</div><div class="mgsr-val" style="color:${portB>=capital?'#3fb950':'#f85149'}">${fmtK(portB)}</div></div>
+      ${bottomWarning}${liqWarning}
+      <div class="mgsr"><div class="mgsr-lbl">Bottom ${fmtMo(botMs)}</div><div class="mgsr-val" style="color:#f85149">${liquidated?'☠ LIQ':fmtK(portB)}</div></div>
       <div class="mgsr"><div class="mgsr-lbl">Break-even</div><div class="mgsr-val" style="color:#8b949e">${breakMs!==null?fmtMo(nowMs+breakMs*86400000):'N/A'}</div></div>
       <div class="mgsr"><div class="mgsr-lbl">H5 ${fmtMo(h5Ms)}</div><div class="mgsr-val" style="color:#d29922">${fmtK(portH)}</div></div>
       <div class="mgsr"><div class="mgsr-lbl">Exit ${fmtMo(athMs)}</div><div class="mgsr-val" style="color:#3fb950">${fmtK(portA)}</div></div>
@@ -2587,10 +2664,11 @@ function updateMilli(){try{
 
     // ── CHART 1: ECharts — Full Timeline to ATH ──────────────────────
     const fmtDay=v=>{const d=new Date(nowMs+v*86400000);return MOS[d.getUTCMonth()]+" '"+String(d.getUTCFullYear()).slice(2);};
-    const tierEntryDays=TIERS.filter(t=>t.contracts>0).sort((a,b)=>b.price-a.price).map((t,i)=>{
+    const tierEntryDays=TIERS.filter(t=>t.contracts>0).map((t,i)=>{
+      if(tierMonthDays[t.n]!==undefined) return{n:t.n,day:tierMonthDays[t.n],i}; // month override
       for(let k=0;k<btcArr.length;k++){if(btcArr[k]<=t.price)return{n:t.n,day:tsArr[k],i};}
       return null;
-    }).filter(Boolean);
+    }).filter(Boolean).sort((a,b)=>a.day-b.day);
 
     const el1=document.getElementById('milliGrowthCanvas');
     if(el1){
@@ -2788,6 +2866,27 @@ function updateMilli(){try{
 }catch(e){console.error('updateMilli error:',e);}}
 window.milliCustomPrices    = window.milliCustomPrices    || {};
 window.milliCustomContracts = window.milliCustomContracts || {};
+window.milliCustomPcts      = window.milliCustomPcts      || {};
+
+window.milliSetTierPct = function(n, val){
+  if(val===''||val===null) return;
+  const cur = {...(window._milliCurrentTierPcts||{})};
+  if(cur[n]===undefined) return;
+  const others = Object.keys(cur).map(Number).filter(k=>k!==n);
+  const newPct = Math.min(100-others.length, Math.max(1, parseInt(val)||1));
+  cur[n] = newPct;
+  const otherSum = others.reduce((s,k)=>s+(cur[k]||0),0);
+  const remaining = 100 - newPct;
+  others.forEach((k,i)=>{
+    if(i===others.length-1){
+      cur[k]=Math.max(1, remaining - others.slice(0,i).reduce((s,k2)=>s+(cur[k2]||0),0));
+    } else {
+      cur[k]=Math.max(1, Math.round((cur[k]||1)/otherSum*remaining));
+    }
+  });
+  window.milliCustomPcts = cur;
+  updateMilli();
+};
 window.milliSetCustomPrice = function(n,val){
   if(val===''||val===null) return; // user is mid-edit, don't re-render
   const v=parseFloat(val);
@@ -2804,9 +2903,16 @@ window.milliToggleC1Mode = function(){
   window._milliC1Mode = window._milliC1Mode === 'pct' ? 'dollar' : 'pct';
   updateMilli();
 };
+window.milliTierMonths = window.milliTierMonths || {};
+window.milliSetTierMonth = function(n, val){
+  if(!val){ delete window.milliTierMonths[n]; } else { window.milliTierMonths[n]=val; }
+  updateMilli();
+};
 window.milliResetCustom = function(){
   window.milliCustomPrices={};
   window.milliCustomContracts={};
+  window.milliCustomPcts={};
+  window.milliTierMonths={};
   updateMilli();
 };
 
@@ -2830,6 +2936,8 @@ window.milliResetCustom = function(){
         b.classList.toggle('lev-active',b.textContent.trim()===s.tiers);
       });
     }
+    if(s.startDate) document.getElementById('milliStartDate').value=s.startDate;
+    if(s.tierMonths) try{window.milliTierMonths=JSON.parse(s.tierMonths);}catch(e){}
   }catch(e){}
 })();
 updateMilli();
