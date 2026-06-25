@@ -1483,7 +1483,20 @@ function filterYear(yr,btn){yFilter=yr;document.querySelectorAll('.ytab').forEac
 function renderYearTable(){
   const f=yFilter==='all'?YEAR_DATA:YEAR_DATA.filter(r=>r[1].startsWith('Y'+yFilter)||(yFilter===2&&r[1]==='Y2b'));
   document.getElementById('yHead').innerHTML='<th>Cycle</th><th>Year</th><th>Period</th><th>Start</th><th>End</th><th>Return</th><th>Key Event</th><th>Days</th>';
-  document.getElementById('yBody').innerHTML=f.map(r=>`<tr><td class="gold">${r[0]}</td><td class="dim">${r[1]}</td><td class="dim">${r[2]}</td><td>${fP(r[3])}</td><td>${fP(r[4])}</td><td class="${r[5].startsWith('+')?'g':'r'}">${r[5]}</td><td class="dim">${r[6]}</td><td class="dim">${r[7]||'—'}</td></tr>`).join('');
+  const ATH_DATE=new Date('2025-10-06');
+  const MO_NAMES=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  document.getElementById('yBody').innerHTML=f.map(r=>{
+    let row=r.slice();
+    if(row[1]==='Y2b'){
+      const now=new Date();
+      const liveDays=Math.floor((Date.now()-ATH_DATE)/86400000);
+      const livePct=-((ATH_C4-livePrice)/ATH_C4*100).toFixed(1);
+      const moStr=MO_NAMES[now.getMonth()]+' '+now.getFullYear();
+      row=[row[0],row[1],'Oct 2025 – '+moStr,row[3],Math.round(livePrice),livePct+'%','Bear phase (ongoing)',liveDays];
+    }
+    const retCls=String(row[5]).startsWith('+')?'g':'r';
+    return `<tr><td class="gold">${row[0]}</td><td class="dim">${row[1]}</td><td class="dim">${row[2]}</td><td>${fP(row[3])}</td><td>${fP(row[4])}</td><td class="${retCls}">${row[5]}</td><td class="dim">${row[6]}</td><td class="dim">${row[7]||'—'}</td></tr>`;
+  }).join('');
 }
 renderYearTable();
 
