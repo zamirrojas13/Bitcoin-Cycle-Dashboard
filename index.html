@@ -482,7 +482,7 @@ hr.sep{border:none;border-top:1px solid #21262d;margin:16px 0;}
   <div class="si"><div class="sl">ATH date</div><div class="sv" style="color:#d29922">Oct 6, 2025</div></div>
   <div class="si"><div class="sl">Drop from ATH</div><div class="sv" id="drop" style="color:#f85149">-46.7%</div></div>
   <div class="si"><div class="sl">Days since ATH</div><div class="sv" id="ddays">175</div></div>
-  <div class="si"><div class="sl">Avg bear</div><div class="sv" style="color:#f85149">383 days</div></div>
+  <div class="si"><div class="sl">Avg bear</div><div class="sv" style="color:#f85149">369 days</div></div>
   <div class="si"><div class="sl">Est. ATL window</div><div class="sv" style="color:#bc8cff">Oct–Nov 2026</div></div>
   <div class="si"><div class="sl">H5 countdown</div><div class="sv" style="color:#d29922" id="h5days">--</div></div>
   <div class="si"><div class="sl">Days post-H4</div><div class="sv" style="color:#58a6ff" id="dphdays">708</div></div>
@@ -646,8 +646,8 @@ hr.sep{border:none;border-top:1px solid #21262d;margin:16px 0;}
     <div class="pred-wrap">
       <div class="pred-chart"><canvas id="predCanvas"></canvas></div>
       <div class="pred-meta">
-        <div class="pm"><div class="pm-lbl">C4 ATL — avg date</div><div class="pm-val" style="color:#f85149;">Oct 24, 2026</div></div>
-        <div class="pm"><div class="pm-lbl">C4 ATL date range</div><div class="pm-val" style="color:#f85149;">Oct 4 – Nov 21, 2026</div></div>
+        <div class="pm"><div class="pm-lbl">C4 ATL — avg date</div><div class="pm-val" style="color:#f85149;">Oct 10, 2026</div></div>
+        <div class="pm"><div class="pm-lbl">C4 ATL date range</div><div class="pm-val" style="color:#f85149;">Sep 20 – Oct 31, 2026</div></div>
         <div class="pm"><div class="pm-lbl">C4 ATL price range</div><div class="pm-val" style="color:#f85149;">$35,000 – $57,000</div></div>
         <div class="pm"><div class="pm-lbl">Bear progress today</div><div class="pm-val" id="predDays" style="color:#bc8cff;">175 / ~383 days</div></div>
         <div class="pm"><div class="pm-lbl">H5 projected date</div><div class="pm-val" style="color:#d29922;">Apr 18, 2028</div></div>
@@ -1280,7 +1280,7 @@ function buildProgressBar(){
   const H4      = new Date('2024-04-20');
   const H5      = new Date('2028-04-18');
   const ATH_D   = new Date('2025-10-06');  // confirmed ATH (end of bull)
-  const ATL_EST = new Date('2026-10-24');  // estimated ATL (end of bear)
+  const ATL_EST = new Date('2026-10-10');  // estimated ATL: avg of C2(362d)+C3(376d)=369d from ATH
   const now     = new Date();
 
   const totalDays   = (H5 - H4) / 86400000;         // 1459d
@@ -1373,7 +1373,7 @@ function applyPrice(price,change){
   document.getElementById('drop').textContent='-'+((C4_ATH-price)/C4_ATH*100).toFixed(1)+'%';
   const days=Math.floor((Date.now()-new Date('2025-10-06'))/86400000);
   document.getElementById('ddays').textContent=days;
-  const bearEstDays=383; // avg of C2:363d and C3:363d bear phases
+  const bearEstDays=369; // avg of C2:362d + C3:376d bear phases
   const bearPct=Math.min(100,Math.round(days/bearEstDays*100));
   document.getElementById('predDays').textContent=days+' / ~'+bearEstDays+' est. days ('+bearPct+'%)';
   const h5days=Math.floor((new Date('2028-04-18')-Date.now())/86400000);
@@ -1791,9 +1791,11 @@ function _bearSeries(athWeek,athPrice,maxWeeks){
   for(let w=0;w<maxWeeks&&(s+w)<WK.length;w++) series.push((WK[s+w][4]/athPrice)*100);
   return series;
 }
-function _bullSeries(atlWeek,atlPrice,maxWeeks){
-  const s=_analogFindWeekIdx(atlWeek),series=[];
-  for(let w=0;w<maxWeeks&&(s+w)<WK.length;w++) series.push(WK[s+w][4]/atlPrice);
+function _bullSeries(atlWeek,atlPrice,maxWeeks,stopWeek){
+  const s=_analogFindWeekIdx(atlWeek);
+  const stopIdx=stopWeek?_analogFindWeekIdx(stopWeek):WK.length-1;
+  const series=[];
+  for(let w=0;w<maxWeeks&&(s+w)<WK.length&&(s+w)<=stopIdx;w++) series.push(WK[s+w][4]/atlPrice);
   return series;
 }
 
@@ -1858,9 +1860,9 @@ function buildBearAnalog(){
 
 function buildBullAnalog(){
   Chart.getChart('bullAnalogCanvas')?.destroy();
-  const c1Bull=_bullSeries('2011-11-20',2.00,175);   // Nov 2011 ATL $2
-  const c2Bull=_bullSeries('2018-12-16',3177,165);    // Dec 2018 ATL $3,177
-  const c3Bull=_bullSeries('2022-11-13',15476,165);   // Nov 2022 ATL $15,476 (COMPLETE)
+  const c1Bull=_bullSeries('2011-11-20',2.00,175,'2013-11-24');   // Nov 2011 ATL → Dec 2013 ATH
+  const c2Bull=_bullSeries('2018-12-16',3177,165,'2021-11-07');   // Dec 2018 ATL → Nov 2021 ATH
+  const c3Bull=_bullSeries('2022-11-13',15476,165,'2025-10-05');  // Nov 2022 ATL → Oct 2025 ATH (COMPLETE)
   const maxLen=Math.max(c1Bull.length,c2Bull.length,c3Bull.length);
   const labels=Array.from({length:maxLen},(_,i)=>i);
   const LOG_TICKS=[1,1.5,2,3,5,8,12,20,35,60,100,200,500];
