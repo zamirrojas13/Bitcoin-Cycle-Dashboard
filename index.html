@@ -674,6 +674,18 @@ hr.sep{border:none;border-top:1px solid #21262d;margin:16px 0;}
       </div>
       <div class="analog-note" id="analogNote"></div>
     </div>
+
+    <div class="an-section-title" style="color:#3fb950;font-size:12px;padding:20px 0 4px;">&#9670; Cycle Analog Overlay — Bull Phase Comparison</div>
+    <div class="an-sub">Bull phases normalized: ATL = 1×, x-axis = weeks since ATL (log scale). C3 (2022–2025) now complete — gives a direct template for the upcoming C4 bull.</div>
+    <div class="analog-wrap">
+      <div class="analog-chart"><canvas id="bullAnalogCanvas"></canvas></div>
+      <div class="analog-legend">
+        <div class="ali"><div class="dot" style="background:#8b949e;"></div>C1 Bull (Nov 2011 ATL $2)</div>
+        <div class="ali"><div class="dot" style="background:#d29922;"></div>C2 Bull (Dec 2018 ATL $3,177)</div>
+        <div class="ali"><div class="dot" style="background:#3fb950;width:12px;height:4px;"></div>C3 Bull (Nov 2022 ATL $15,476) — COMPLETE</div>
+      </div>
+      <div class="analog-note" id="bullAnalogNote"></div>
+    </div>
   </div>
 </div><!-- /tab-prediction -->
 
@@ -1770,47 +1782,37 @@ myChart.zoomScale=function(id,range,mode){_origZoomScale(id,range,mode);if(volCh
 // ══════════════════════════════════════════════════════════════════════
 // FEATURE 2: CYCLE ANALOG OVERLAY
 // ══════════════════════════════════════════════════════════════════════
-(function(){
-  // Bear phases: normalize ATH=100%, measure weekly close as % of ATH, x=weeks since ATH
-  // C1: ATH week ~2011-06-05 (ATH $31.90), ATL $2.00 (Nov 2011)
-  // C2: ATH week ~2017-12-10 (ATH $19,871), ATL $3,177 (Dec 2018)
-  // C3: ATH week ~2021-11-07 (ATH $68,991), ATL $15,504 (Nov 2022)
-  // C4: ATH week ~2025-10-05 (ATH $126,186), ongoing
+function _analogFindWeekIdx(dateStr){
+  for(let i=0;i<WK.length;i++){if(WK[i][0]>=dateStr)return i;}
+  return WK.length-1;
+}
+function _bearSeries(athWeek,athPrice,maxWeeks){
+  const s=_analogFindWeekIdx(athWeek),series=[];
+  for(let w=0;w<maxWeeks&&(s+w)<WK.length;w++) series.push((WK[s+w][4]/athPrice)*100);
+  return series;
+}
+function _bullSeries(atlWeek,atlPrice,maxWeeks){
+  const s=_analogFindWeekIdx(atlWeek),series=[];
+  for(let w=0;w<maxWeeks&&(s+w)<WK.length;w++) series.push(WK[s+w][4]/atlPrice);
+  return series;
+}
 
-  function findWeekIdx(dateStr){
-    for(let i=0;i<WK.length;i++){if(WK[i][0]>=dateStr)return i;}
-    return WK.length-1;
-  }
-
-  // Extract bear series: from ATH week, take N weeks of close prices, normalize to ATH=100%
-  function bearSeries(athWeek,athPrice,maxWeeks){
-    const startIdx=findWeekIdx(athWeek);
-    const series=[];
-    for(let w=0;w<maxWeeks&&(startIdx+w)<WK.length;w++){
-      const pct=(WK[startIdx+w][4]/athPrice)*100;
-      series.push(pct);
-    }
-    return series;
-  }
-
-  const c1Bear=bearSeries('2011-06-05',31.90,80);
-  const c2Bear=bearSeries('2017-12-10',19871,75);
-  const c3Bear=bearSeries('2021-11-07',68991,70);
-  const c4Bear=bearSeries('2025-10-05',126186,100);
-
+function buildBearAnalog(){
+  Chart.getChart('analogCanvas')?.destroy();
+  const c1Bear=_bearSeries('2011-06-05',31.90,80);
+  const c2Bear=_bearSeries('2017-12-10',19871,75);
+  const c3Bear=_bearSeries('2021-11-07',68991,70);
+  const c4Bear=_bearSeries('2025-10-05',126186,100);
   const maxLen=Math.max(c1Bear.length,c2Bear.length,c3Bear.length,c4Bear.length);
   const labels=Array.from({length:maxLen},(_,i)=>i);
-
-  const datasets=[
-    {label:'C1 Bear (2011)',data:c1Bear,borderColor:'rgba(139,148,158,.6)',borderWidth:1.5,borderDash:[4,3],pointRadius:0,fill:false,tension:.2},
-    {label:'C2 Bear (2017)',data:c2Bear,borderColor:'#d29922',borderWidth:1.5,borderDash:[6,3],pointRadius:0,fill:false,tension:.2},
-    {label:'C3 Bear (2021)',data:c3Bear,borderColor:'#bc8cff',borderWidth:1.5,borderDash:[6,3],pointRadius:0,fill:false,tension:.2},
-    {label:'C4 Bear (2025)',data:c4Bear,borderColor:'#f85149',borderWidth:2.5,pointRadius:0,fill:false,tension:.2},
-  ];
-
   new Chart(document.getElementById('analogCanvas'),{
     type:'line',
-    data:{labels:labels,datasets:datasets},
+    data:{labels,datasets:[
+      {label:'C1 Bear (2011)',data:c1Bear,borderColor:'rgba(139,148,158,.6)',borderWidth:1.5,borderDash:[4,3],pointRadius:0,fill:false,tension:.2},
+      {label:'C2 Bear (2017)',data:c2Bear,borderColor:'#d29922',borderWidth:1.5,borderDash:[6,3],pointRadius:0,fill:false,tension:.2},
+      {label:'C3 Bear (2021)',data:c3Bear,borderColor:'#bc8cff',borderWidth:1.5,borderDash:[6,3],pointRadius:0,fill:false,tension:.2},
+      {label:'C4 Bear (2025)',data:c4Bear,borderColor:'#f85149',borderWidth:2.5,pointRadius:0,fill:false,tension:.2},
+    ]},
     options:{
       responsive:true,maintainAspectRatio:false,animation:{duration:300},
       interaction:{mode:'index',intersect:false},
@@ -1823,7 +1825,7 @@ myChart.zoomScale=function(id,range,mode){_origZoomScale(id,range,mode);if(volCh
           padding:10,displayColors:true,
           callbacks:{
             title:i=>'Week '+i[0].label+' after ATH',
-            label:i=>i.dataset.label+': '+(i.raw?i.raw.toFixed(1)+'%':'—'),
+            label:i=>i.dataset.label+': '+(i.raw!=null?i.raw.toFixed(1)+'%':'—'),
           }
         }
       },
@@ -1835,13 +1837,11 @@ myChart.zoomScale=function(id,range,mode){_origZoomScale(id,range,mode);if(volCh
     plugins:[{
       id:'analogRef',
       afterDraw(ch){
-        const{ctx,chartArea:{left,right,top,bottom},scales:{y}}=ch;
-        // 50% line
-        const y50=y.getPixelForValue(50);
+        const{ctx,chartArea:{left,right},scales:{y}}=ch;
         ctx.save();ctx.strokeStyle='rgba(255,255,255,.12)';ctx.lineWidth=1;ctx.setLineDash([4,4]);
+        const y50=y.getPixelForValue(50);
         ctx.beginPath();ctx.moveTo(left,y50);ctx.lineTo(right,y50);ctx.stroke();
         ctx.fillStyle='rgba(255,255,255,.2)';ctx.font='8px JetBrains Mono';ctx.textAlign='right';ctx.fillText('-50% drawdown',right-4,y50-4);
-        // 22% line (C3 bottom)
         const y22=y.getPixelForValue(22);
         ctx.beginPath();ctx.moveTo(left,y22);ctx.lineTo(right,y22);ctx.stroke();
         ctx.fillText('-78% (C3 floor)',right-4,y22-4);
@@ -1849,17 +1849,81 @@ myChart.zoomScale=function(id,range,mode){_origZoomScale(id,range,mode);if(volCh
       }
     }]
   });
-
-  // Analog note
   const c4Weeks=c4Bear.length-1;
-  const c4Now=c4Bear[c4Bear.length-1]?.toFixed(1)||'—';
-  const c2AtSame=c2Bear[c4Weeks]?.toFixed(1)||'—';
-  const c3AtSame=c3Bear[c4Weeks]?.toFixed(1)||'—';
   document.getElementById('analogNote').innerHTML=
-    `<strong style="color:#f0e68c;">At week ${c4Weeks}:</strong> C4 is at <strong class="r">${c4Now}%</strong> of ATH. `+
-    `At the same point, C2 was at <strong class="gold">${c2AtSame}%</strong> and C3 was at <strong class="pu">${c3AtSame}%</strong>. `+
+    `<strong style="color:#f0e68c;">At week ${c4Weeks}:</strong> C4 is at <strong class="r">${c4Bear[c4Bear.length-1]?.toFixed(1)||'—'}%</strong> of ATH. `+
+    `At the same point, C2 was at <strong class="gold">${c2Bear[c4Weeks]?.toFixed(1)||'—'}%</strong> and C3 was at <strong class="pu">${c3Bear[c4Weeks]?.toFixed(1)||'—'}%</strong>. `+
     `C2 bottomed week ~52 at ~16%. C3 bottomed week ~54 at ~22%. C4 has been in bear for ${c4Weeks} weeks.`;
-})();
+}
+
+function buildBullAnalog(){
+  Chart.getChart('bullAnalogCanvas')?.destroy();
+  const c1Bull=_bullSeries('2011-11-20',2.00,175);   // Nov 2011 ATL $2
+  const c2Bull=_bullSeries('2018-12-16',3177,165);    // Dec 2018 ATL $3,177
+  const c3Bull=_bullSeries('2022-11-13',15476,165);   // Nov 2022 ATL $15,476 (COMPLETE)
+  const maxLen=Math.max(c1Bull.length,c2Bull.length,c3Bull.length);
+  const labels=Array.from({length:maxLen},(_,i)=>i);
+  const LOG_TICKS=[1,1.5,2,3,5,8,12,20,35,60,100,200,500];
+  new Chart(document.getElementById('bullAnalogCanvas'),{
+    type:'line',
+    data:{labels,datasets:[
+      {label:'C1 Bull (2011→2013)',data:c1Bull,borderColor:'rgba(139,148,158,.5)',borderWidth:1.5,borderDash:[4,3],pointRadius:0,fill:false,tension:.3},
+      {label:'C2 Bull (2018→2021)',data:c2Bull,borderColor:'#d29922',borderWidth:1.5,borderDash:[6,3],pointRadius:0,fill:false,tension:.3},
+      {label:'C3 Bull (2022→2025)',data:c3Bull,borderColor:'#3fb950',borderWidth:2.5,pointRadius:0,fill:false,tension:.3},
+    ]},
+    options:{
+      responsive:true,maintainAspectRatio:false,animation:{duration:300},
+      interaction:{mode:'index',intersect:false},
+      plugins:{
+        legend:{display:false},
+        tooltip:{
+          backgroundColor:'rgba(13,17,23,.97)',borderColor:'#30363d',borderWidth:1,
+          titleColor:'#8b949e',bodyColor:'#e6edf3',
+          titleFont:{family:'JetBrains Mono',size:10},bodyFont:{family:'JetBrains Mono',size:11},
+          padding:10,displayColors:true,
+          callbacks:{
+            title:i=>'Week '+i[0].label+' after ATL',
+            label:i=>i.dataset.label+': '+(i.raw!=null?i.raw.toFixed(2)+'× from ATL':'—'),
+          }
+        }
+      },
+      scales:{
+        x:{title:{display:true,text:'Weeks after ATL',color:'#6b7280',font:{family:'JetBrains Mono',size:9}},ticks:{color:'#6b7280',font:{family:'JetBrains Mono',size:9},maxTicksLimit:15,callback:v=>'W'+v},grid:{color:'rgba(255,255,255,.03)'}},
+        y:{type:'logarithmic',title:{display:true,text:'× from ATL (log)',color:'#6b7280',font:{family:'JetBrains Mono',size:9}},
+           min:0.9,
+           ticks:{color:'#6b7280',font:{family:'JetBrains Mono',size:9},callback:v=>LOG_TICKS.includes(Math.round(v*10)/10)||LOG_TICKS.includes(Math.round(v))?Math.round(v)+'×':''},
+           grid:{color:'rgba(255,255,255,.04)'}}
+      }
+    },
+    plugins:[{
+      id:'bullRef',
+      afterDraw(ch){
+        const{ctx,chartArea:{left,right},scales:{y}}=ch;
+        ctx.save();ctx.strokeStyle='rgba(255,255,255,.1)';ctx.lineWidth=1;ctx.setLineDash([4,4]);
+        [2,5,10].forEach(mult=>{
+          const yp=y.getPixelForValue(mult);
+          if(yp>ch.chartArea.top&&yp<ch.chartArea.bottom){
+            ctx.beginPath();ctx.moveTo(left,yp);ctx.lineTo(right,yp);ctx.stroke();
+            ctx.fillStyle='rgba(255,255,255,.18)';ctx.font='8px JetBrains Mono';ctx.textAlign='right';
+            ctx.fillText(mult+'× from ATL',right-4,yp-4);
+          }
+        });
+        ctx.setLineDash([]);ctx.restore();
+      }
+    }]
+  });
+  const c3Weeks=c3Bull.length-1;
+  const c2Weeks=c2Bull.length-1;
+  const c3Peak=Math.max(...c3Bull).toFixed(1);
+  const c2Peak=Math.max(...c2Bull).toFixed(1);
+  document.getElementById('bullAnalogNote').innerHTML=
+    `<strong style="color:#3fb950;">C3 bull (Nov 2022–Oct 2025):</strong> ${c3Weeks} weeks from ATL, peaked at <strong style="color:#3fb950;">${c3Peak}× from bottom</strong>. `+
+    `<strong style="color:#d29922;">C2 bull (Dec 2018–Nov 2021):</strong> ${c2Weeks} weeks, peaked at <strong style="color:#d29922;">${c2Peak}×</strong>. `+
+    `C4 bull expected after predicted ATL (~Oct 2026). Avg bull duration: ~${Math.round((c3Weeks+c2Weeks)/2)} weeks.`;
+}
+
+buildBearAnalog();
+buildBullAnalog();
 
 // ══════════════════════════════════════════════════════════════════════
 // FEATURE 3: KEY PRICE LEVELS
@@ -3193,6 +3257,8 @@ async function patchHistoricalData(){
       pc.data.labels.forEach((l,i)=>{if(ds.data[i]===null&&moMap[l]!==undefined){ds.data[i]=moMap[l];chg=true;}});
       if(chg) pc.update('none');
     }
+    buildBearAnalog();
+    buildBullAnalog();
     console.log(`[BTC] Historical patch: +${added} rows (DA→${DA[DA.length-1][0]}, WK→${WK[WK.length-1][0]}, MO→${MO[MO.length-1][0]})`);
   } catch(e){
     console.log('[BTC] Historical patch skipped:',e.message);
