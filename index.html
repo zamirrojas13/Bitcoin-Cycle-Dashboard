@@ -133,13 +133,35 @@ hr.sep{border:none;border-top:1px solid #21262d;margin:16px 0;}
 .vol-wrap{position:relative;width:100%;height:90px;margin-top:0;border-top:1px solid rgba(255,255,255,.04);}
 .vol-label{position:absolute;top:4px;left:6px;font-size:10px;color:#6b7280;text-transform:uppercase;letter-spacing:.05em;z-index:2;pointer-events:none;font-weight:500;}
 
-/* ── CYCLE ANALOG ── */
-.analog-wrap{background:#161b22;border:1px solid #21262d;border-radius:10px;padding:16px;margin-bottom:16px;}
-.analog-chart{position:relative;width:100%;height:340px;}
-.analog-legend{display:flex;gap:16px;flex-wrap:wrap;margin-top:10px;font-size:11px;color:#8b949e;}
-.analog-legend .ali{display:flex;align-items:center;gap:5px;}
-.analog-legend .ali .dot{width:10px;height:3px;border-radius:1px;}
-.analog-note{font-size:11px;color:#6b7280;margin-top:8px;line-height:1.65;}
+/* ── CYCLE ANALOG REDESIGN ── */
+.ca-section{margin-bottom:20px;}
+.ca-insight-bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;padding:10px 14px;background:rgba(13,17,23,.7);border:1px solid rgba(99,110,123,.13);border-radius:10px;align-items:center;}
+.ca-chip{display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 12px;border-radius:8px;flex:1;min-width:72px;}
+.ca-chip-lbl{font-size:9px;color:#6b7280;text-transform:uppercase;letter-spacing:.07em;font-weight:600;white-space:nowrap;}
+.ca-chip-val{font-size:13px;font-weight:700;font-family:'JetBrains Mono',monospace;white-space:nowrap;}
+.ca-chip.red{background:rgba(248,81,73,.08);border:1px solid rgba(248,81,73,.22);}.ca-chip.red .ca-chip-val{color:#f85149;}
+.ca-chip.pu{background:rgba(188,140,255,.08);border:1px solid rgba(188,140,255,.22);}.ca-chip.pu .ca-chip-val{color:#bc8cff;}
+.ca-chip.gold{background:rgba(210,153,34,.08);border:1px solid rgba(210,153,34,.22);}.ca-chip.gold .ca-chip-val{color:#d29922;}
+.ca-chip.green{background:rgba(63,185,80,.08);border:1px solid rgba(63,185,80,.22);}.ca-chip.green .ca-chip-val{color:#3fb950;}
+.ca-chip.blue{background:rgba(88,166,255,.08);border:1px solid rgba(88,166,255,.22);}.ca-chip.blue .ca-chip-val{color:#58a6ff;}
+.ca-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+@media(max-width:680px){.ca-grid{grid-template-columns:1fr;}}
+.ca-card{background:rgba(22,27,34,.98);border:1px solid rgba(99,110,123,.15);border-radius:12px;padding:16px;position:relative;overflow:hidden;}
+.ca-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;}
+.ca-card.bear::before{background:linear-gradient(90deg,transparent 0%,rgba(248,81,73,.7) 50%,transparent 100%);}
+.ca-card.bull::before{background:linear-gradient(90deg,transparent 0%,rgba(63,185,80,.7) 50%,transparent 100%);}
+.ca-card-title{font-size:12px;font-weight:700;color:#e6edf3;letter-spacing:.02em;margin-bottom:2px;}
+.ca-card-sub{font-size:9px;color:#6b7280;text-transform:uppercase;letter-spacing:.06em;font-family:'JetBrains Mono',monospace;margin-bottom:12px;}
+.ca-canvas-wrap{position:relative;height:250px;}
+.ca-divider{border:none;border-top:1px solid rgba(99,110,123,.1);margin:10px 0 8px;}
+.ca-leg-row{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:10px;}
+.ca-leg-item{display:flex;align-items:center;gap:6px;font-size:10px;color:#8b949e;}
+.ca-leg-line{height:2px;border-radius:1px;flex-shrink:0;}
+.ca-leg-active{color:#e6edf3;font-weight:700;}
+.ca-stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;}
+.ca-stat-box{padding:7px 8px;background:rgba(13,17,23,.55);border-radius:7px;border:1px solid rgba(99,110,123,.09);}
+.ca-stat-lbl{font-size:8px;color:#6b7280;text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px;}
+.ca-stat-val{font-size:12px;font-weight:700;font-family:'JetBrains Mono',monospace;}
 
 /* ── KEY PRICE LEVELS ── */
 .levels-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin-bottom:16px;}
@@ -662,29 +684,56 @@ hr.sep{border:none;border-top:1px solid #21262d;margin:16px 0;}
     <div class="levels-grid" id="levelsGrid"></div>
     <div class="levels-ts" id="levelsTs"></div>
 
-    <div class="an-section-title" style="color:#d29922;font-size:12px;padding:20px 0 4px;">&#9670; Cycle Analog Overlay — Bear Phase Comparison</div>
-    <div class="an-sub">All bear phases normalized: ATH = 100%, x-axis = weeks since ATH. Shows where C4 sits relative to C1, C2, and C3 bears.</div>
-    <div class="analog-wrap">
-      <div class="analog-chart"><canvas id="analogCanvas"></canvas></div>
-      <div class="analog-legend">
-        <div class="ali"><div class="dot" style="background:#8b949e;"></div>C1 Bear (Jun 2011 ATH)</div>
-        <div class="ali"><div class="dot" style="background:#d29922;"></div>C2 Bear (Nov 2013 ATH)</div>
-        <div class="ali"><div class="dot" style="background:#bc8cff;"></div>C3 Bear (Dec 2017 ATH)</div>
-        <div class="ali"><div class="dot" style="background:#f85149;width:12px;height:4px;"></div>C4 Bear (Oct 2025 ATH) — CURRENT</div>
+    <!-- ══ CYCLE ANALOG ══ -->
+    <div class="ca-section">
+      <div class="ca-insight-bar">
+        <div class="ca-chip red"><span class="ca-chip-lbl">Bear week</span><span class="ca-chip-val" id="caWeek">—</span></div>
+        <div class="ca-chip pu"><span class="ca-chip-lbl">Bear progress</span><span class="ca-chip-val" id="caProgress">—</span></div>
+        <div class="ca-chip red"><span class="ca-chip-lbl">C4 vs ATH</span><span class="ca-chip-val" id="caC4Pct">—</span></div>
+        <div class="ca-chip gold"><span class="ca-chip-lbl">Est. ATL date</span><span class="ca-chip-val">Oct 10, 2026</span></div>
+        <div class="ca-chip green"><span class="ca-chip-lbl">Prior bull avg</span><span class="ca-chip-val">151 wk</span></div>
+        <div class="ca-chip blue"><span class="ca-chip-lbl">Est. C5 ATH</span><span class="ca-chip-val">~Oct 2029</span></div>
       </div>
-      <div class="analog-note" id="analogNote"></div>
-    </div>
+      <div class="ca-grid">
 
-    <div class="an-section-title" style="color:#3fb950;font-size:12px;padding:20px 0 4px;">&#9670; Cycle Analog Overlay — Bull Phase Comparison</div>
-    <div class="an-sub">Bull phases normalized: ATL = 1×, x-axis = weeks since ATL (log scale). C3 (2022–2025) now complete — gives a direct template for the upcoming C4 bull.</div>
-    <div class="analog-wrap">
-      <div class="analog-chart"><canvas id="bullAnalogCanvas"></canvas></div>
-      <div class="analog-legend">
-        <div class="ali"><div class="dot" style="background:#8b949e;"></div>C1 Bull (Nov 2011 ATL $2)</div>
-        <div class="ali"><div class="dot" style="background:#d29922;"></div>C2 Bull (Dec 2018 ATL $3,177)</div>
-        <div class="ali"><div class="dot" style="background:#3fb950;width:12px;height:4px;"></div>C3 Bull (Nov 2022 ATL $15,476) — COMPLETE</div>
+        <!-- BEAR CARD -->
+        <div class="ca-card bear">
+          <div class="ca-card-title">Bear Phase — ATH → ATL</div>
+          <div class="ca-card-sub">% of ATH · weeks since top · all cycles normalized</div>
+          <div class="ca-canvas-wrap"><canvas id="analogCanvas"></canvas></div>
+          <hr class="ca-divider">
+          <div class="ca-leg-row">
+            <div class="ca-leg-item"><div class="ca-leg-line" style="width:16px;background:rgba(139,148,158,.6);"></div>C1 '11</div>
+            <div class="ca-leg-item"><div class="ca-leg-line" style="width:16px;background:#d29922;opacity:.8;"></div>C2 '17</div>
+            <div class="ca-leg-item"><div class="ca-leg-line" style="width:16px;background:#bc8cff;opacity:.8;"></div>C3 '21</div>
+            <div class="ca-leg-item ca-leg-active"><div class="ca-leg-line" style="width:18px;height:3px;background:#f85149;"></div>C4 '25 ▶ NOW</div>
+          </div>
+          <div class="ca-stats-row">
+            <div class="ca-stat-box"><div class="ca-stat-lbl">C4 current</div><div class="ca-stat-val" id="caBearC4" style="color:#f85149;">—</div></div>
+            <div class="ca-stat-box"><div class="ca-stat-lbl">C2 at same wk</div><div class="ca-stat-val" id="caBearC2" style="color:#d29922;">—</div></div>
+            <div class="ca-stat-box"><div class="ca-stat-lbl">C3 at same wk</div><div class="ca-stat-val" id="caBearC3" style="color:#bc8cff;">—</div></div>
+          </div>
+        </div>
+
+        <!-- BULL CARD -->
+        <div class="ca-card bull">
+          <div class="ca-card-title">Bull Phase — ATL → ATH</div>
+          <div class="ca-card-sub">× from ATL · log scale · weeks from bottom</div>
+          <div class="ca-canvas-wrap"><canvas id="bullAnalogCanvas"></canvas></div>
+          <hr class="ca-divider">
+          <div class="ca-leg-row">
+            <div class="ca-leg-item"><div class="ca-leg-line" style="width:16px;background:rgba(139,148,158,.5);"></div>C1 '11</div>
+            <div class="ca-leg-item"><div class="ca-leg-line" style="width:16px;background:#d29922;opacity:.8;"></div>C2 '18</div>
+            <div class="ca-leg-item ca-leg-active"><div class="ca-leg-line" style="width:18px;height:3px;background:#3fb950;"></div>C3 '22 ✓ DONE</div>
+          </div>
+          <div class="ca-stats-row">
+            <div class="ca-stat-box"><div class="ca-stat-lbl">C3 peak</div><div class="ca-stat-val" id="caBullC3" style="color:#3fb950;">—</div></div>
+            <div class="ca-stat-box"><div class="ca-stat-lbl">C2 peak</div><div class="ca-stat-val" id="caBullC2" style="color:#d29922;">—</div></div>
+            <div class="ca-stat-box"><div class="ca-stat-lbl">C4 est. peak</div><div class="ca-stat-val" style="color:#58a6ff;">8–20× ATL</div></div>
+          </div>
+        </div>
+
       </div>
-      <div class="analog-note" id="bullAnalogNote"></div>
     </div>
   </div>
 </div><!-- /tab-prediction -->
@@ -1852,10 +1901,18 @@ function buildBearAnalog(){
     }]
   });
   const c4Weeks=c4Bear.length-1;
-  document.getElementById('analogNote').innerHTML=
-    `<strong style="color:#f0e68c;">At week ${c4Weeks}:</strong> C4 is at <strong class="r">${c4Bear[c4Bear.length-1]?.toFixed(1)||'—'}%</strong> of ATH. `+
-    `At the same point, C2 was at <strong class="gold">${c2Bear[c4Weeks]?.toFixed(1)||'—'}%</strong> and C3 was at <strong class="pu">${c3Bear[c4Weeks]?.toFixed(1)||'—'}%</strong>. `+
-    `C2 bottomed week ~52 at ~16%. C3 bottomed week ~54 at ~22%. C4 has been in bear for ${c4Weeks} weeks.`;
+  const c4NowPct=c4Bear[c4Bear.length-1]?.toFixed(1)||'—';
+  const c2AtSame=c2Bear[c4Weeks]?.toFixed(1)||'—';
+  const c3AtSame=c3Bear[c4Weeks]?.toFixed(1)||'—';
+  const bearDays=Math.floor((Date.now()-new Date('2025-10-06'))/86400000);
+  const bearProg=Math.min(100,Math.round(bearDays/369*100));
+  const el=id=>document.getElementById(id);
+  if(el('caWeek')) el('caWeek').textContent='W'+c4Weeks;
+  if(el('caProgress')) el('caProgress').textContent=bearProg+'%';
+  if(el('caC4Pct')) el('caC4Pct').textContent=c4NowPct+'% ATH';
+  if(el('caBearC4')) el('caBearC4').textContent=c4NowPct+'%';
+  if(el('caBearC2')) el('caBearC2').textContent=c2AtSame+'%';
+  if(el('caBearC3')) el('caBearC3').textContent=c3AtSame+'%';
 }
 
 function buildBullAnalog(){
@@ -1914,14 +1971,11 @@ function buildBullAnalog(){
       }
     }]
   });
-  const c3Weeks=c3Bull.length-1;
-  const c2Weeks=c2Bull.length-1;
   const c3Peak=Math.max(...c3Bull).toFixed(1);
   const c2Peak=Math.max(...c2Bull).toFixed(1);
-  document.getElementById('bullAnalogNote').innerHTML=
-    `<strong style="color:#3fb950;">C3 bull (Nov 2022–Oct 2025):</strong> ${c3Weeks} weeks from ATL, peaked at <strong style="color:#3fb950;">${c3Peak}× from bottom</strong>. `+
-    `<strong style="color:#d29922;">C2 bull (Dec 2018–Nov 2021):</strong> ${c2Weeks} weeks, peaked at <strong style="color:#d29922;">${c2Peak}×</strong>. `+
-    `C4 bull expected after predicted ATL (~Oct 2026). Avg bull duration: ~${Math.round((c3Weeks+c2Weeks)/2)} weeks.`;
+  const el2=id=>document.getElementById(id);
+  if(el2('caBullC3')) el2('caBullC3').textContent=c3Peak+'×';
+  if(el2('caBullC2')) el2('caBullC2').textContent=c2Peak+'×';
 }
 
 buildBearAnalog();
