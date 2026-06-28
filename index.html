@@ -1024,7 +1024,7 @@ hr.sep{border:none;border-top:1px solid rgba(255,255,255,.07);margin:16px 0;}
       <table class="margin-tier-table">
         <thead><tr>
           <th>Tier</th><th>Entry</th><th>Margin used</th>
-          <th>Liq. price</th><th>Buffer to liq.</th><th>Status</th>
+          <th>Solo liq. price</th><th>Buffer to liq.</th><th>Status</th>
         </tr></thead>
         <tbody id="milliMarginRows"><!-- JS --></tbody>
       </table>
@@ -2358,7 +2358,7 @@ function updateMilli(){try{
           return `<div class="mtc-row"><span class="mtc-rk">Buy month</span><span class="mtc-rv" style="display:flex;align-items:center;gap:4px;"><select onchange="window.milliSetTierMonth(${t.n},this.value)" style="background:rgba(5,8,14,.7);border:1px solid ${_has?'#58a6ff':'#30363d'};border-radius:4px;color:${_has?'#58a6ff':'#8b949e'};font-size:11px;outline:none;font-family:inherit;padding:2px 6px;cursor:pointer;">${_opts}</select>${_has?'<span style="font-size:10px;color:#58a6ff;cursor:pointer;" onclick="delete window.milliTierMonths['+t.n+'];updateMilli()">✕</span>':''}</span></div>`;
         })()}
         <div class="mtc-row"><span class="mtc-rk">BTC exposure</span><span class="mtc-rv">${btcExp.toFixed(2)} BTC</span></div>
-        <div class="mtc-row"><span class="mtc-rk">Margin required</span><span class="mtc-rv">~$${Math.round(marginReq).toLocaleString()}</span></div>
+        <div class="mtc-row"><span class="mtc-rk">Margin required</span><span class="mtc-rv">$${Math.round(marginReq).toLocaleString()}</span></div>
         <div class="mtc-row mtc-profit"><span class="mtc-rk">Profit at $${(top/1000).toFixed(0)}K target</span><span class="mtc-rv">+$${Math.round(pnl).toLocaleString()}</span></div>
       </div>
       <div class="mtc-note">${t.note}</div>
@@ -2442,8 +2442,17 @@ function updateMilli(){try{
     document.getElementById('milliMarginRec').innerHTML=
       `<div class="margin-rec-card" style="grid-column:1/-1;text-align:center;color:#3c4a5e;">Enter capital above your reserve to see risk recommendations.</div>`;
   } else {
+    // Sequential liq check: warn if any solo liq price > next tier's entry (position wiped before next tier fires)
+    const _firingSeq=TIERS.filter(t=>t.price>=bottom&&t.contracts>0);
+    const _seqWarns=[];
+    for(let _si=0;_si<_firingSeq.length-1;_si++){
+      const _sc=_firingSeq[_si],_sn=_firingSeq[_si+1];
+      const _sSoloLiq=_sc.price-_sc.price/(lev*2);
+      if(_sSoloLiq>_sn.price) _seqWarns.push(`<strong>T${_sc.n} solo liq ($${Math.round(_sSoloLiq).toLocaleString()})</strong> is above <strong>T${_sn.n} entry ($${_sn.price.toLocaleString()})</strong> — T${_sc.n} gets liquidated before T${_sn.n} even fires. Add cash reserve or lower leverage.`);
+    }
+    const _seqBlock=_seqWarns.length>0?`<div class="margin-risk-banner mrb-red" style="margin-top:8px;"><span class="mrb-icon">&#128683;</span><span>${_seqWarns.join('<br>')}</span></div>`:'';
     document.getElementById('milliBanner').innerHTML=
-      `<div class="margin-risk-banner ${bannerClass}"><span class="mrb-icon">${bannerIcon}</span><span>${bannerMsg[worstGapStatus]}</span></div>`;
+      `<div class="margin-risk-banner ${bannerClass}"><span class="mrb-icon">${bannerIcon}</span><span>${bannerMsg[worstGapStatus]}</span></div>${_seqBlock}`;
     const weekendRisk=worstGapStatus==='red'?'HIGH':worstGapStatus==='yellow'?'MEDIUM':'LOW';
     const weekendColor=worstGapStatus==='red'?'#f85149':worstGapStatus==='yellow'?'#d29922':'#3fb950';
     const minBuffer=Math.min(...TIERS.filter(t=>t.contracts>0).map(t=>{const ep=t.price;const alloc=deployable*t.pct/100;const c=t.contracts;const initM=c*ep*0.01/lev;const resS=totalInitMgn>0?reserve*(initM/totalInitMgn):0;return ep/(lev*2)+(c*0.01>0?resS/(c*0.01):0);}));
@@ -2492,14 +2501,14 @@ function updateMilli(){try{
   const liqWR  = acctLiqWRes>0?'$'+Math.round(acctLiqWRes).toLocaleString():'Cannot be liquidated';
   if(totalBTC===0){
     document.getElementById('milliAcctLiq').innerHTML=`
-      <div class="acct-liq-ttl">&#128202; Account-level liquidation — all ${TIERS.filter(t=>t.price>=bottom).length} ${TIERS.filter(t=>t.price>=bottom).length===1?'entry':'entries'} open simultaneously</div>
+      <div class="acct-liq-ttl">&#128202; Account-level liquidation — steady-state liq — all ${TIERS.filter(t=>t.price>=bottom).length} ${TIERS.filter(t=>t.price>=bottom).length===1?'entry has':'entries have'} fired</div>
       <div style="padding:14px 0 4px;text-align:center;color:#3c4a5e;font-size:12px;">No positions deployed — your $${capital.toLocaleString()} is fully in reserve. Lower the reserve to allocate capital to tiers.</div>`;
     // Don't return — let scenarios/checklist/hero update with $0 values
   } else {
   const liqWRColor = acctLiqWRes<=0?'#3fb950':(acctLiqWRes<acctLiqNoRes*0.9?'#d29922':'#f85149');
   const extraBuf = reserve>0&&acctLiqWRes>0?'$'+Math.round(moveWRes-moveNoRes).toLocaleString()+' extra buffer':reserve>0?'Full protection added':'Set reserve above to see impact';
   document.getElementById('milliAcctLiq').innerHTML=`
-    <div class="acct-liq-ttl">&#128202; Account-level liquidation — all ${TIERS.filter(t=>t.price>=bottom).length} ${TIERS.filter(t=>t.price>=bottom).length===1?'entry':'entries'} open simultaneously</div>
+    <div class="acct-liq-ttl">&#128202; Account-level liquidation — steady-state liq — all ${TIERS.filter(t=>t.price>=bottom).length} ${TIERS.filter(t=>t.price>=bottom).length===1?'entry has':'entries have'} fired</div>
     <div class="acct-liq-grid">
       <div class="alc">
         <div class="alc-lbl">Avg. entry price</div>
