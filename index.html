@@ -921,6 +921,13 @@ hr.sep{border:none;border-top:1px solid rgba(255,255,255,.07);margin:16px 0;}
         <div class="mic-input-wrap"><span class="mic-prefix">$</span><input type="number" id="milliReserve" value="0" min="0" step="500" oninput="updateMilli()"></div>
         <div class="mic-hint">Kept liquid · not invested · absorbs losses before liquidation</div>
       </div>
+      <div class="milli-input-card">
+        <label class="mic-label" for="milliEntryAfter">Earliest buy date</label>
+        <div class="mic-input-wrap" style="padding:0 0 0 8px;">
+          <input type="month" id="milliEntryAfter" style="background:transparent;border:none;color:#e8eef8;font-size:14px;font-weight:600;font-family:'JetBrains Mono',monospace;outline:none;width:100%;padding:6px 0;cursor:pointer;" oninput="updateMilli()">
+        </div>
+        <div class="mic-hint">Optional · no entries before this date · for buying after the dip</div>
+      </div>
     </div>
 
     <!-- TIERED ENTRY PLAN -->
@@ -2197,7 +2204,7 @@ function setMilliTiers(n,btn){
 
 function updateMilli(){try{
   // Auto-save settings to localStorage on every update
-  try{const s={capital:document.getElementById('milliCapital').value,bottom:document.getElementById('milliBottom').value,top:document.getElementById('milliTop').value,reserve:document.getElementById('milliReserve').value,lev:document.getElementById('milliLev').value,tiers:document.getElementById('milliTiers').value,startDate:document.getElementById('milliStartDate')?.value||'',tierMonths:JSON.stringify(window.milliTierMonths||{})};localStorage.setItem('milliSettings',JSON.stringify(s));}catch(e){}
+  try{const s={capital:document.getElementById('milliCapital').value,bottom:document.getElementById('milliBottom').value,top:document.getElementById('milliTop').value,reserve:document.getElementById('milliReserve').value,lev:document.getElementById('milliLev').value,tiers:document.getElementById('milliTiers').value,startDate:document.getElementById('milliStartDate')?.value||'',entryAfter:document.getElementById('milliEntryAfter')?.value||'',tierMonths:JSON.stringify(window.milliTierMonths||{})};localStorage.setItem('milliSettings',JSON.stringify(s));}catch(e){}
   const capital    = parseFloat(document.getElementById('milliCapital').value)||10000;
   const reserve    = Math.max(0,parseFloat(document.getElementById('milliReserve')?.value)||0);
   // Reserve is ADDITIONAL cash buffer on top of capital — capital is always fully deployed
@@ -2205,6 +2212,8 @@ function updateMilli(){try{
   const bottom     = parseFloat(document.getElementById('milliBottom').value)||47000;
   const top        = parseFloat(document.getElementById('milliTop').value)||280000;
   const lev        = Math.max(1,parseFloat(document.getElementById('milliLev').value)||10);
+  const entryAfterVal = document.getElementById('milliEntryAfter')?.value||'';
+  const entryAfterMs  = entryAfterVal ? new Date(entryAfterVal+'-01').getTime() : null;
   const price      = typeof livePrice!=='undefined'?livePrice:61770;
   // Plan start date — drives chart reference point and tier status badges
   const realNowMs   = Date.now();
@@ -2670,6 +2679,7 @@ function updateMilli(){try{
 
     // ── Key dates (from dashboard research: 4-cycle R²=0.954 model) ──
     const nowMs    = planStartMs; // uses outer-scope planStartMs (user's chosen plan start)
+    const entryAfterDays = entryAfterMs ? Math.round((entryAfterMs - nowMs) / 86400000) : null;
     const botMs    = new Date('2026-10-08').getTime(); // Day 900 post-H4 = peak-prob bottom
     const h5Ms     = new Date('2028-04-18').getTime(); // H5 halving (protocol-derived)
     const athMs    = new Date('2029-08-01').getTime(); // C5 ATH central estimate (range Apr–Oct 2029)
@@ -2745,7 +2755,7 @@ function updateMilli(){try{
             if(tierMonthDays[t.n]!==undefined){
               if(tsArr[i]>=tierMonthDays[t.n]) entered.add(idx); // month-based entry
             } else {
-              if(runMin<=t.price) entered.add(idx); // price-based entry
+              if(runMin<=t.price && (entryAfterDays===null||tsArr[i]>=entryAfterDays)) entered.add(idx); // price-based entry (respects earliest buy date)
             }
           }
         });
@@ -2821,7 +2831,10 @@ function updateMilli(){try{
     const fmtDay=v=>{const d=new Date(nowMs+v*86400000);return MOS[d.getUTCMonth()]+" '"+String(d.getUTCFullYear()).slice(2);};
     const tierEntryDays=TIERS.filter(t=>t.contracts>0).map((t,i)=>{
       if(tierMonthDays[t.n]!==undefined) return{n:t.n,day:tierMonthDays[t.n],i}; // month override
-      for(let k=0;k<btcArr.length;k++){if(btcArr[k]<=t.price)return{n:t.n,day:tsArr[k],i};}
+      for(let k=0;k<btcArr.length;k++){
+        if(btcArr[k]<=t.price&&(entryAfterDays===null||tsArr[k]>=entryAfterDays))
+          return{n:t.n,day:tsArr[k],i};
+      }
       return null;
     }).filter(Boolean).sort((a,b)=>a.day-b.day);
 
@@ -2868,11 +2881,21 @@ function updateMilli(){try{
         ...xAxisML
       ];
 
-      const btcML=liqPx>500?[{
-        yAxis:liqPx,
+      const _liqStartDay = tierEntryDays.length>0 ? tierEntryDays[0].day : 0;
+      const btcML = liqPx>500 ? {
+        silent:true, symbol:'none',
         lineStyle:{color:'rgba(248,81,73,0.7)',type:'dashed',width:2},
-        label:{show:true,formatter:'☠ LIQ  $'+Math.round(liqPx/1000)+'K',color:'#f85149',position:'insideEndBottom',fontSize:10,fontFamily:'JetBrains Mono,monospace',fontWeight:'bold',backgroundColor:'rgba(248,81,73,0.18)',borderColor:'rgba(248,81,73,0.5)',borderWidth:1,borderRadius:3,padding:[3,8]}
-      }]:[];
+        data:[[
+          {xAxis:_liqStartDay, yAxis:liqPx},
+          {xAxis:totalDays,    yAxis:liqPx, label:{
+            show:true, formatter:'☠ LIQ  $'+Math.round(liqPx/1000)+'K',
+            color:'#f85149', position:'insideEndTop',
+            fontSize:10, fontFamily:'JetBrains Mono,monospace', fontWeight:'bold',
+            backgroundColor:'rgba(248,81,73,0.18)', borderColor:'rgba(248,81,73,0.5)',
+            borderWidth:1, borderRadius:3, padding:[3,8]
+          }}
+        ]]
+      } : undefined;
 
       // ── % Gain mode data ─────────────────────────────────────────────
       const c1mode = window._milliC1Mode || 'dollar';
@@ -2973,7 +2996,7 @@ function updateMilli(){try{
               }
               return h+'</div>';
             }},
-          grid:{left:72,right:80,top:28,bottom:50,containLabel:false},
+          grid:{left:72,right:100,top:40,bottom:50,containLabel:false},
           yAxis:[
             {type:'log',logBase:10,min:c1LogMin,name:'Portfolio ($)',nameTextStyle:{color:'#8b949e',fontSize:9,fontFamily:'monospace'},
              axisLabel:{color:'#8b949e',fontSize:9,fontFamily:'monospace',showMaxLabel:false,formatter:v=>v>=1e6?'$'+(v/1e6).toFixed(1)+'M':v>=1000?'$'+Math.round(v/1000)+'K':'$'+Math.round(v)},
@@ -2993,7 +3016,7 @@ function updateMilli(){try{
              markLine:{silent:true,symbol:'none',lineStyle:{type:'dashed',width:1},label:{show:false},data:c1ML}},
             {name:'BTC Price',type:'line',yAxisIndex:1,data:c1btc.map((y,i)=>[c1ts[i],y]),
              smooth:0.3,symbol:'none',lineStyle:{color:'rgba(255,255,255,0.13)',width:1.5},
-             markLine:btcML.length?{silent:true,symbol:'none',data:btcML}:undefined}
+             markLine:btcML}
           ]
         },{notMerge:true});
       }
@@ -3092,6 +3115,7 @@ window.milliResetCustom = function(){
       });
     }
     if(s.startDate) document.getElementById('milliStartDate').value=s.startDate;
+    if(s.entryAfter) document.getElementById('milliEntryAfter').value=s.entryAfter;
     if(s.tierMonths) try{window.milliTierMonths=JSON.parse(s.tierMonths);}catch(e){}
   }catch(e){}
 })();
