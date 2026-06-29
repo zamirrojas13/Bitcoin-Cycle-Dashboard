@@ -922,11 +922,11 @@ hr.sep{border:none;border-top:1px solid rgba(255,255,255,.07);margin:16px 0;}
         <div class="mic-hint">Kept liquid · not invested · absorbs losses before liquidation</div>
       </div>
       <div class="milli-input-card">
-        <label class="mic-label" for="milliEntryAfter">Earliest buy date</label>
+        <label class="mic-label" for="milliBottomDate">Expected bottom date</label>
         <div class="mic-input-wrap" style="padding:0 0 0 8px;">
-          <input type="month" id="milliEntryAfter" style="background:transparent;border:none;color:#e8eef8;font-size:14px;font-weight:600;font-family:'JetBrains Mono',monospace;outline:none;width:100%;padding:6px 0;cursor:pointer;" oninput="updateMilli()">
+          <input type="month" id="milliBottomDate" style="background:transparent;border:none;color:#e8eef8;font-size:14px;font-weight:600;font-family:'JetBrains Mono',monospace;outline:none;width:100%;padding:6px 0;cursor:pointer;" oninput="updateMilli()">
         </div>
-        <div class="mic-hint">Optional · no entries before this date · for buying after the dip</div>
+        <div class="mic-hint">Default Oct 2026 · shifts BTC model timeline · use per-tier Buy month to set buys after the dip</div>
       </div>
     </div>
 
@@ -2204,7 +2204,7 @@ function setMilliTiers(n,btn){
 
 function updateMilli(){try{
   // Auto-save settings to localStorage on every update
-  try{const s={capital:document.getElementById('milliCapital').value,bottom:document.getElementById('milliBottom').value,top:document.getElementById('milliTop').value,reserve:document.getElementById('milliReserve').value,lev:document.getElementById('milliLev').value,tiers:document.getElementById('milliTiers').value,startDate:document.getElementById('milliStartDate')?.value||'',entryAfter:document.getElementById('milliEntryAfter')?.value||'',tierMonths:JSON.stringify(window.milliTierMonths||{})};localStorage.setItem('milliSettings',JSON.stringify(s));}catch(e){}
+  try{const s={capital:document.getElementById('milliCapital').value,bottom:document.getElementById('milliBottom').value,top:document.getElementById('milliTop').value,reserve:document.getElementById('milliReserve').value,lev:document.getElementById('milliLev').value,tiers:document.getElementById('milliTiers').value,startDate:document.getElementById('milliStartDate')?.value||'',bottomDate:document.getElementById('milliBottomDate')?.value||'',tierMonths:JSON.stringify(window.milliTierMonths||{})};localStorage.setItem('milliSettings',JSON.stringify(s));}catch(e){}
   const capital    = parseFloat(document.getElementById('milliCapital').value)||10000;
   const reserve    = Math.max(0,parseFloat(document.getElementById('milliReserve')?.value)||0);
   // Reserve is ADDITIONAL cash buffer on top of capital — capital is always fully deployed
@@ -2212,8 +2212,7 @@ function updateMilli(){try{
   const bottom     = parseFloat(document.getElementById('milliBottom').value)||47000;
   const top        = parseFloat(document.getElementById('milliTop').value)||280000;
   const lev        = Math.max(1,parseFloat(document.getElementById('milliLev').value)||10);
-  const entryAfterVal = document.getElementById('milliEntryAfter')?.value||'';
-  const entryAfterMs  = entryAfterVal ? new Date(entryAfterVal+'-01').getTime() : null;
+  const bottomDateVal = document.getElementById('milliBottomDate')?.value||'';
   const price      = typeof livePrice!=='undefined'?livePrice:61770;
   // Plan start date — drives chart reference point and tier status badges
   const realNowMs   = Date.now();
@@ -2679,8 +2678,7 @@ function updateMilli(){try{
 
     // ── Key dates (from dashboard research: 4-cycle R²=0.954 model) ──
     const nowMs    = planStartMs; // uses outer-scope planStartMs (user's chosen plan start)
-    const entryAfterDays = entryAfterMs ? Math.round((entryAfterMs - nowMs) / 86400000) : null;
-    const botMs    = new Date('2026-10-08').getTime(); // Day 900 post-H4 = peak-prob bottom
+    const botMs    = bottomDateVal ? new Date(bottomDateVal+'-08').getTime() : new Date('2026-10-08').getTime(); // Day 900 post-H4 = peak-prob bottom
     const h5Ms     = new Date('2028-04-18').getTime(); // H5 halving (protocol-derived)
     const athMs    = new Date('2029-08-01').getTime(); // C5 ATH central estimate (range Apr–Oct 2029)
     const endMs    = new Date('2030-06-01').getTime(); // post-ATH tail
@@ -2755,7 +2753,7 @@ function updateMilli(){try{
             if(tierMonthDays[t.n]!==undefined){
               if(tsArr[i]>=tierMonthDays[t.n]) entered.add(idx); // month-based entry
             } else {
-              if(runMin<=t.price && (entryAfterDays===null||tsArr[i]>=entryAfterDays)) entered.add(idx); // price-based entry (respects earliest buy date)
+              if(runMin<=t.price) entered.add(idx); // price-based entry
             }
           }
         });
@@ -2831,10 +2829,7 @@ function updateMilli(){try{
     const fmtDay=v=>{const d=new Date(nowMs+v*86400000);return MOS[d.getUTCMonth()]+" '"+String(d.getUTCFullYear()).slice(2);};
     const tierEntryDays=TIERS.filter(t=>t.contracts>0).map((t,i)=>{
       if(tierMonthDays[t.n]!==undefined) return{n:t.n,day:tierMonthDays[t.n],i}; // month override
-      for(let k=0;k<btcArr.length;k++){
-        if(btcArr[k]<=t.price&&(entryAfterDays===null||tsArr[k]>=entryAfterDays))
-          return{n:t.n,day:tsArr[k],i};
-      }
+      for(let k=0;k<btcArr.length;k++){if(btcArr[k]<=t.price)return{n:t.n,day:tsArr[k],i};}
       return null;
     }).filter(Boolean).sort((a,b)=>a.day-b.day);
 
@@ -3115,7 +3110,7 @@ window.milliResetCustom = function(){
       });
     }
     if(s.startDate) document.getElementById('milliStartDate').value=s.startDate;
-    if(s.entryAfter) document.getElementById('milliEntryAfter').value=s.entryAfter;
+    if(s.bottomDate) document.getElementById('milliBottomDate').value=s.bottomDate;
     if(s.tierMonths) try{window.milliTierMonths=JSON.parse(s.tierMonths);}catch(e){}
   }catch(e){}
 })();
